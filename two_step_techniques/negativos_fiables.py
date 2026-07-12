@@ -8,6 +8,10 @@ from two_step_techniques.metricas_distancia import comprobar_nombre_metrica, obt
 
 # Método de Rocchio. En cada método se utiliza un dataset ya convertido en PU (engineered):
 def rocchio(X, y, nombre_metrica):
+    # Transformamos "X" e "y" en arrays de numpy para una mayor eficiencia:
+    X = np.asarray(X)
+    y = np.asarray(y)
+
     # Comprobamos que la métrica sea válida:
     metrica = comprobar_nombre_metrica(nombre_metrica)
 
@@ -44,6 +48,10 @@ def rocchio(X, y, nombre_metrica):
 
 # KNN (K-Nearest Neighbours):
 def knn(X, y, nombre_metrica, k, porcentaje_rn):
+    # Transformamos "X" e "y" en arrays de numpy para una mayor eficiencia:
+    X = np.asarray(X)
+    y = np.asarray(y)
+
     # Comprobamos que la métrica sea válida:
     metrica = comprobar_nombre_metrica(nombre_metrica)
 
@@ -82,6 +90,10 @@ def knn(X, y, nombre_metrica, k, porcentaje_rn):
 
 # K-Means:
 def kmeans(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
+    # Transformamos "X" e "y" en arrays de numpy para una mayor eficiencia:
+    X = np.asarray(X)
+    y = np.asarray(y)
+
     # Comprobamos que la métrica sea válida y obtenemos una métrica de scipy:
     metrica = comprobar_nombre_metrica(nombre_metrica)
     metrica_sc = obtener_metrica(metrica)
@@ -154,6 +166,10 @@ def kmeans(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
 
 # K-Medoids:
 def kmedoids(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
+    # Transformamos "X" e "y" en arrays de numpy para una mayor eficiencia:
+    X = np.asarray(X)
+    y = np.asarray(y)
+
     # Comprobamos que la métrica sea válida. Además, obtenemos una métrica de scipy:
     metrica = comprobar_nombre_metrica(nombre_metrica)
     metrica_sc = obtener_metrica(metrica)
@@ -228,6 +244,10 @@ def kmedoids(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
 
 # CRNE:
 def crne(X, y, nombre_metrica, k, semilla = 1):
+    # Transformamos "X" e "y" en arrays de numpy para una mayor eficiencia:
+    X = np.asarray(X)
+    y = np.asarray(y)
+    
     # Comprobamos que la métrica sea válida y obtenemos una métrica de scipy:
     metrica = comprobar_nombre_metrica(nombre_metrica)
     metrica_sc = obtener_metrica(metrica)

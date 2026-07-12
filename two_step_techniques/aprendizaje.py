@@ -8,7 +8,11 @@ from xgboost import XGBClassifier
 # Función auxiliar para construír el set de datos con el que se entrenará al modelo.
 # Este se construye únicamente con los datos positivos (P) y los negativos fiables (RN):
 def construir_dataset_entrenamiento(X, y, RN):
-    # Primero, definimos el conjunto de positivos:
+    # Transformamos "X" e "y" en arrays de numpy para una mayor eficiencia:
+    X = np.asarray(X)
+    y = np.asarray(y)
+
+    # Definimos el conjunto de positivos:
     P = X[y == 1]
 
     # Juntamos los positivos en las columnas izquierdas y los RN en las derechas:

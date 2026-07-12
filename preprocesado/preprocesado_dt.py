@@ -1,13 +1,13 @@
 import numpy as np
+import pandas as pd
 import os
 
 
 # Función principal para transformar un set de datos a uno de datos PU ("engineered"),
 # donde "X" es la matriz con características (y muestras), e "y" son las etiquetas (ground truth):
 def convertir_a_pu(X, y, clases_positivas, porcentaje_positivos, semilla = None):
-    # Primero, convertimos "X" e "y" a arrays de Numpy:
-    X = np.array(X)
-    y = np.array(y)
+    # "X" e "y" se pasan como dataframes de pandas. Solo "y" se convierte a un array de Numpy:
+    y = np.asarray(y)
 
     # Convertimos las clases positivas a un array de numpy. Si la clase fuese solo una (un escalar),
     # nos aseguramos de que sea iterable convirtiéndola en una lista antes de ello:
@@ -19,11 +19,7 @@ def convertir_a_pu(X, y, clases_positivas, porcentaje_positivos, semilla = None)
     # Si la semilla no existe ("None"), cada iteración tendrá una randomización distinta:
     randomizador = np.random.default_rng(semilla)
 
-    # Se mezcla el dataset para evitar sesgo:
-    indices = np.arange(len(y))
-    randomizador.shuffle(indices)
-    X = X[indices] # Se reordena "X"
-    y = y[indices] # Se reordena "y"
+    # (El dataset no se mezcla ahora para evitar que los folds PU sean distintos)
 
     # Aislamos los positivos y calculamos su número:
     pos_idx = np.where(np.isin(y, clases_positivas))[0]
@@ -75,49 +71,31 @@ def informacion_dataset(y, y_gt, clases_positivas, num_positivos, num_positivos_
 
 # Función para guardar el dataset generado por "convertir_a_pu" en una carpeta.
 # Se puede escoger tanto si se guardan los archivos ".npy" como ".csv":
-def guardar_dataset(X, y, y_gt, carpeta_salida, npy = False, csv = True):
+def guardar_dataset_pu(X, y, y_gt, carpeta_salida, nombre, npy = False, csv = True):
     # Primero, creamos la carpeta si aún no existiese:
     os.makedirs(carpeta_salida, exist_ok = True)
 
     # Guardamos los archivos ".npy":
     if (npy):
-        np.save(os.path.join(carpeta_salida, "X.npy"), X)
-        np.save(os.path.join(carpeta_salida, "y.npy"), y)
-        np.save(os.path.join(carpeta_salida, "y_gt.npy"), y_gt)
+        np.save(os.path.join(carpeta_salida, f"{nombre}_X.npy"), X)
+        np.save(os.path.join(carpeta_salida, f"{nombre}_y.npy"), y)
+        np.save(os.path.join(carpeta_salida, f"{nombre}_y_gt.npy"), y_gt)
 
         print(f"Dataset .npy guardado en: {carpeta_salida}")
     
     # Guardamos los archivos ".csv":
     if (csv):
-        # Convertimos "X", "y" e "y_gt" a arrays de Numpy ("y" e "y_gt" se transforman en columnas):
-        X = np.array(X)
-        y = np.array(y).reshape(-1, 1)
-        y_gt = np.array(y_gt).reshape(-1, 1)
+        # Creamos un dataframe de pandas:
+        dataframe = X.copy()
 
-        # Se concatenan las matrices horizontalmente:
-        datos = np.hstack([X, y_gt, y])
-
-        # Se crea una cabecera para el archivo:
-        num_features = X.shape[1]
-
-        columnas = []
-        for i in range(num_features):
-            columnas.append(f"f{i}") # Se usan nombres genéricos para las características
-
-        columnas += ["y", "y_gt"]
-        header = ",".join(columnas)
+        # Se unen las nuevas columnas "y" e "y_gt" al dataframe, sin tener que concatenar manualmente:
+        dataframe["y_gt"] = np.asarray(y_gt)
+        dataframe["y"] = np.asarray(y)
 
         # Se define la ruta para el archivo:
-        ruta_csv = os.path.join(carpeta_salida, "dataset.csv")
+        ruta_csv = os.path.join(carpeta_salida, nombre)
 
-        # Por último, se guarda el archivo CSV con la función "savetxt":
-        np.savetxt(
-            ruta_csv,
-            datos,
-            delimiter = ",",
-            header = header,
-            comments = "",
-            fmt = "%.5f"
-        )
+        # Por último, se guarda el archivo CSV con la función "to_csv" de pandas:
+        dataframe.to_csv(ruta_csv, index = False, sep = ";")
 
         print(f"Dataset .csv guardado en: {ruta_csv}")

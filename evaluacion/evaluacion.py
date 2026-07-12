@@ -1,4 +1,5 @@
-from sklearn.metrics import classification_report
+import os
+from sklearn.metrics import classification_report, precision_score, recall_score, f1_score
 
 # Función para evaluar los resultados de un modelo tras entrenamiento:
 def evaluacion_dataset(
@@ -43,3 +44,12 @@ def evaluacion_dataset(
         f.close()
 
         print(f"Reporte guardado en \"{path_guardado}\"")
+
+    # Métricas devueltas, utilizadas en el K-fold:
+    metricas = {
+        "precision": precision_score(y_true, y_pred, zero_division = 0),
+        "recall": recall_score(y_true, y_pred, zero_division = 0),
+        "f1": f1_score(y_true, y_pred, zero_division = 0),
+    }
+
+    return metricas
