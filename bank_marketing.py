@@ -59,9 +59,65 @@ if __name__ == "__main__":
         # Carga del dataset de test (solo uno de los folds, no PU):
         X_test, y_test = cargar_bank_marketing(RUTA_FOLDS / f"fold_{fold_num}.csv")
 
-        # Se juntan el resto de folds para formar el dataset de entrenamiento (PU):
-        folds_entrenamiento = [i for i in range(1, NUM_FOLDS + 1) if i != fold_num]
-        X_train, y_train = juntar_folds_separados(RUTA_FOLDS_PU, folds_entrenamiento)
+        # Se juntan el resto de folds para formar el dataset de entrenamiento.
+        # Se forman dos conjuntos: uno no PU (para el Benchmark) y otro PU:
+        indices_folds_entrenamiento = [i for i in range(1, NUM_FOLDS + 1) if i != fold_num]
+        X_train, y_train = juntar_folds_separados(RUTA_FOLDS, indices_folds_entrenamiento)
+        X_train_pu, y_train_pu = juntar_folds_separados(RUTA_FOLDS_PU, indices_folds_entrenamiento)
+
+
+        # Sin PU ("Benchmark"):
+
+        # Se elige el modelo para el benchmark:
+        match MET_APRENDIZAJE:
+            case "Logistic Regression":
+                modelo_benchmark = LogisticRegression(
+                    penalty = PENALTY,
+                    C = C,
+                    random_state = SEMILLA_L,
+                    max_iter = 1000
+                )
+            case "Random Forest":
+                modelo_benchmark = RandomForestClassifier(
+                    n_estimators = N_ESTIMATORS,
+                    criterion = CRITERION,
+                    max_depth = MAX_DEPTH,
+                    random_state = SEMILLA_L
+                )
+            case "XGBoost":
+                modelo_benchmark = XGBClassifier(
+                    random_state = SEMILLA_L
+                )
+            case "MLP":
+                modelo_benchmark = MLPClassifier(
+                    hidden_layer_sizes = HIDDEN_LAYER_SIZES,
+                    activation = ACTIVATION,
+                    max_iter = 1000,
+                    random_state = SEMILLA_L
+                )
+            case "CNN":
+                raise ValueError("CNN aun no implementado")
+            case _:
+                raise ValueError(f"Modelo de aprendizaje no valido: \"{MET_APRENDIZAJE}\"")
+        
+        # Se entrena el modelo:
+        modelo_benchmark.fit(X_train, y_train)
+
+        # El modelo entrenado se utiliza para predecir las clases del conjunto de test:
+        y_pred_benchmark = modelo_benchmark.predict(X_test)
+
+        # Se evalúa el modelo:
+        resultados_benchmark = evaluacion_dataset(
+            y_test,
+            y_pred_benchmark,
+            f"{NOMBRE}, fold {fold_num} Benchmark",
+            met_aprendizaje = MET_APRENDIZAJE,
+            guardar = False
+        )
+
+        # Se añaden los resultados de las métricas a la lista:
+        metricas_benchmark.append(resultados_benchmark)
+
 
         # PU sin Two-Step Methods ("Baseline"):
 
@@ -98,7 +154,7 @@ if __name__ == "__main__":
                 raise ValueError(f"Modelo de aprendizaje no valido: \"{MET_APRENDIZAJE}\"")
     
         # Entrenamiento del modelo seleccionado:
-        modelo_baseline.fit(X_train, y_train)
+        modelo_baseline.fit(X_train_pu, y_train_pu)
 
         # El modelo entrenado se utiliza para predecir las clases del conjunto de test:
         y_pred_baseline = modelo_baseline.predict(X_test)
@@ -130,28 +186,28 @@ if __name__ == "__main__":
         # Búsqueda de Negativos Fiables:
         match MET_NEG_FIABLES:
             case "Rocchio":
-                RN = rocchio(X_train, y_train, METRICA)
+                RN = rocchio(X_train_pu, y_train_pu, METRICA)
             case "KNN":
-                RN = knn(X_train, y_train, METRICA, K, PORCENTAJE_RN)
+                RN = knn(X_train_pu, y_train_pu, METRICA, K, PORCENTAJE_RN)
             case "KMeans":
-                RN = kmeans(X_train, y_train, METRICA, K, PORCENTAJE_RN, SEMILLA_RN)
+                RN = kmeans(X_train_pu, y_train_pu, METRICA, K, PORCENTAJE_RN, SEMILLA_RN)
             case "KMedoids":
-                RN = kmedoids(X_train, y_train, METRICA, K, PORCENTAJE_RN, SEMILLA_RN)
+                RN = kmedoids(X_train_pu, y_train_pu, METRICA, K, PORCENTAJE_RN, SEMILLA_RN)
             case "CRNE":
-                RN = crne(X_train, y_train, METRICA, K, SEMILLA_RN)
+                RN = crne(X_train_pu, y_train_pu, METRICA, K, SEMILLA_RN)
             case _:
                 raise ValueError(f"Modelo de Negativos Fiables no valido: \"{MET_NEG_FIABLES}\"")
         
         # Aprendizaje con Positivos y Negativos Fiables:
         match MET_APRENDIZAJE:
             case "Logistic Regression":
-                modelo = logistic_regression(X_train, y_train, RN, PENALTY, C, SEMILLA_L)
+                modelo = logistic_regression(X_train_pu, y_train_pu, RN, PENALTY, C, SEMILLA_L)
             case "Random Forest":
-                modelo = random_forest(X_train, y_train, RN, N_ESTIMATORS, CRITERION, MAX_DEPTH, SEMILLA_L)
+                modelo = random_forest(X_train_pu, y_train_pu, RN, N_ESTIMATORS, CRITERION, MAX_DEPTH, SEMILLA_L)
             case "XGBoost":
-                modelo = xgboost_lrn(X_train, y_train, RN, SEMILLA_L)
+                modelo = xgboost_lrn(X_train_pu, y_train_pu, RN, SEMILLA_L)
             case "MLP":
-                modelo = mlp(X_train, y_train, RN, HIDDEN_LAYER_SIZES, ACTIVATION, SEMILLA_L)
+                modelo = mlp(X_train_pu, y_train_pu, RN, HIDDEN_LAYER_SIZES, ACTIVATION, SEMILLA_L)
             case "CNN":
                 raise ValueError("CNN aun no implementado")
             case _:
@@ -182,6 +238,7 @@ if __name__ == "__main__":
     
     # Estadísticas finales:
 
+    benchmark = pd.DataFrame(metricas_benchmark)
     baseline = pd.DataFrame(metricas_baseline)
     two_step = pd.DataFrame(metricas_two_step)
 
@@ -190,17 +247,26 @@ if __name__ == "__main__":
     f.write(NOMBRE)
     f.write("\n\n")
 
+    # Resultados del benchmark:
+    f.write("Benchmark:")
+    f.write("\n\nMedia:\n")
+    f.write(benchmark.mean().to_string())
+    f.write("\n\tDesviacion tipica:\n\t")
+    f.write(benchmark.std().to_string().replace("\n", "\n\t"))
+
     # Resultados del baseline:
-    f.write("Baseline:\n")
+    f.write("\n\nBaseline:")
+    f.write("\n\nMedia:\n")
     f.write(baseline.mean().to_string())
-    f.write("\n\nDesviacion tipica:\n")
-    f.write(baseline.std().to_string())
+    f.write("\n\tDesviacion tipica:\n\t")
+    f.write(baseline.std().to_string().replace("\n", "\n\t"))
 
     # Resultados del two step:
-    f.write("\n\nTwo-Step:\n")
+    f.write("\n\nTwo-Step:")
+    f.write("\n\nMedia:\n")
     f.write(two_step.mean().to_string())
-    f.write("\n\nDesviacion tipica:\n")
-    f.write(two_step.std().to_string())
+    f.write("\n\tDesviacion tipica:\n\t")
+    f.write(two_step.std().to_string().replace("\n", "\n\t"))
 
     f.write("\n\n\n")
 
