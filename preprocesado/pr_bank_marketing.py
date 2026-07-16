@@ -77,3 +77,5 @@ if __name__ == "__main__":
         False,
         True
     )
+
+    print("Preprocesado completado")

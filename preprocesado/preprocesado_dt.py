@@ -36,7 +36,7 @@ def convertir_a_pu(X, y, clases_positivas, porcentaje_positivos, semilla = None)
 
     # El proceso se ha realizado correctamente, y se le enseña información al usuario:
     print("Dataset convertido a PU correctamente")
-    informacion_dataset(y_pu, y, clases_positivas, num_pos, num_pos_sel)
+    #informacion_dataset(y_pu, y, clases_positivas, num_pos, num_pos_sel)
 
     # Devolvemos "X" e "y" del dataset PU, además del "y" original:
     return X, y_pu, y
