@@ -31,7 +31,7 @@ def informacion_evaluacion(
         f.write(f"\n\tMetodo de extraccion de Negativos Fiables (PU): {met_neg_fiables}")
         f.write(f"\n\tMetodo de aprendizaje: {met_aprendizaje}\n\n")
 
-        print(f"Información guardada en \"{path_guardado}\"")
+        print(f"Informacion guardada en \"{path_guardado}\"")
 
 
 # Función para evaluar los resultados de un modelo tras entrenamiento.

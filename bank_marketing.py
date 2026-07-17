@@ -74,6 +74,57 @@ def elegir_metodo_aprendizaje(
     return modelo
 
 
+# Función auxiliar para escribir en el archivo de resultados:
+def escribir_resultados(metricas, ruta_guardado, nombre):
+    # Las métricas se convierten a un DataFrame de pandas:
+    metricas_dataframe = pd.DataFrame(metricas)
+
+    # Se abre el archivo donde se guardarán los resultados:
+    f = open(ruta_guardado, "a")
+
+    # Se calculan la media y la desviación típica de las métricas:
+    metricas_media = metricas_dataframe.mean()
+    metricas_dt = metricas_dataframe.std()
+
+    # Se escriben en el archivo los resultados:
+    f.write(f"{nombre}:")
+    f.write("\nMEDIA:\n")
+    f.write(metricas_media.to_string())
+    f.write("\nDESVIACION TIPICA:\n")
+    f.write(metricas_dt.to_string())
+    f.write("\n\n")
+
+    # El archivo se cierra:
+    f.close()
+
+
+'''
+# Se abre el archivo:
+    f = open(RUTA_TXT, "a")
+
+    # Resultados del benchmark:
+    f.write("No PU:")
+    f.write("\n\nMedia:\n")
+    f.write(benchmark.mean().to_string())
+    f.write("\n\tDesviacion tipica:\n\t")
+    f.write(benchmark.std().to_string().replace("\n", "\n\t"))
+'''
+
+'''
+    for fold_num in range(1, NUM_FOLDS + 1):
+        print(f"\n\nFold {fold_num}:\n")
+
+        # Carga del dataset de test (solo uno de los folds, no PU):
+        X_test, y_test = cargar_bank_marketing(RUTA_FOLDS / f"fold_{fold_num}.csv")
+
+        # Se juntan el resto de folds para formar el dataset de entrenamiento.
+        # Se forman dos conjuntos: uno no PU (para el Benchmark) y otro PU:
+        indices_folds_entrenamiento = [i for i in range(1, NUM_FOLDS + 1) if i != fold_num]
+        X_train, y_train = juntar_folds_separados(RUTA_FOLDS, indices_folds_entrenamiento)
+        X_train_pu, y_train_pu = juntar_folds_separados(RUTA_FOLDS_PU, indices_folds_entrenamiento)
+'''
+
+
 # Función principal:
 if __name__ == "__main__":
     # Se crean arrays para más tarde guardar los resultados:
@@ -92,21 +143,30 @@ if __name__ == "__main__":
         RUTA_TXT
     )
 
+
+
+    # Entrenamiento y Evaluación no PU:
+    print("\nEntrenamiento y Evaluacion no PU:\n")
+
+    # Iniciamos CodeCarbon:
+    tracker_benchmark = EmissionsTracker(
+        project_name = "Benchmark",
+        output_dir = RESULTADOS,
+        output_file = "codecarbon.csv"
+    )
+    tracker_benchmark.start()
+
     # Bucle principal:
+    print("\nEntrenamiento y Evaluacion no PU:")
     for fold_num in range(1, NUM_FOLDS + 1):
-        print(f"\n\nFold {fold_num}:\n")
+        print(f"\nFold {fold_num}...")
 
         # Carga del dataset de test (solo uno de los folds, no PU):
         X_test, y_test = cargar_bank_marketing(RUTA_FOLDS / f"fold_{fold_num}.csv")
 
-        # Se juntan el resto de folds para formar el dataset de entrenamiento.
-        # Se forman dos conjuntos: uno no PU (para el Benchmark) y otro PU:
+        # Se juntan el resto de folds para formar el dataset de entrenamiento, no PU:
         indices_folds_entrenamiento = [i for i in range(1, NUM_FOLDS + 1) if i != fold_num]
-        X_train, y_train = juntar_folds_separados(RUTA_FOLDS, indices_folds_entrenamiento)
-        X_train_pu, y_train_pu = juntar_folds_separados(RUTA_FOLDS_PU, indices_folds_entrenamiento)
-
-
-        # Sin PU ("Benchmark"):
+        X_train, y_train = juntar_folds_separados(RUTA_FOLDS, indices_folds_entrenamiento)    
 
         # Se elige el modelo para el benchmark:
         modelo_benchmark = elegir_metodo_aprendizaje(
@@ -120,6 +180,17 @@ if __name__ == "__main__":
             ACTIVATION,
             SEMILLA_L
         )
+
+        '''
+        # CodeCarbon:
+        tracker_benchmark = EmissionsTracker(
+            project_name = "Benchmark",
+            output_dir = RESULTADOS,
+            output_file = "codecarbon.csv"
+        )
+
+        tracker_benchmark.start()
+        '''
         
         # Se entrena el modelo:
         modelo_benchmark.fit(X_train, y_train)
@@ -140,10 +211,37 @@ if __name__ == "__main__":
         # Se añaden los resultados de las métricas a la lista:
         metricas_benchmark.append(resultados_benchmark)
 
-        print("Evaluación sin PU completada")
+        print(f"Fold {fold_num} completado.")
+    
+    # Detenemos CodeCarbon tras la evaluación:
+    emisiones_benchmark = tracker_benchmark.stop()
+
+    print("Evaluacion sin PU completada")
+    print(f"Emisiones: {emisiones_benchmark} kg CO2.\n")
 
 
-        # PU sin Two-Step Methods ("Baseline"):
+
+    # Entrenamiento y Evaluación PU sin Two-Step Methods:
+    print("\nEntrenamiento y Evaluacion PU sin Two-Step Methods:\n")
+
+    # Iniciamos CodeCarbon:
+    tracker_baseline = EmissionsTracker(
+        project_name = "Baseline",
+        output_dir = RESULTADOS,
+        output_file = "codecarbon.csv"
+    )
+    tracker_baseline.start()
+
+    # Bucle principal:
+    for fold_num in range(1, NUM_FOLDS + 1):
+        print(f"\nFold {fold_num}...")
+
+        # Carga del dataset de test (solo uno de los folds, no PU):
+        X_test, y_test = cargar_bank_marketing(RUTA_FOLDS / f"fold_{fold_num}.csv")
+
+        # Se juntan el resto de folds para formar el dataset de entrenamiento, en este caso PU:
+        indices_folds_entrenamiento = [i for i in range(1, NUM_FOLDS + 1) if i != fold_num]
+        X_train_pu, y_train_pu = juntar_folds_separados(RUTA_FOLDS_PU, indices_folds_entrenamiento)
 
         # Se elige el modelo para el baseline:
         modelo_baseline = elegir_metodo_aprendizaje(
@@ -157,6 +255,17 @@ if __name__ == "__main__":
             ACTIVATION,
             SEMILLA_L
         )
+    
+        '''
+        # CodeCarbon para PU sin Two-Step Methods:
+        tracker_baseline = EmissionsTracker(
+            project_name = "Baseline",
+            output_dir = RESULTADOS,
+            output_file = "codecarbon.csv"
+        )
+
+        tracker_baseline.start()
+        '''
     
         # Entrenamiento del modelo seleccionado:
         modelo_baseline.fit(X_train_pu, y_train_pu)
@@ -178,14 +287,37 @@ if __name__ == "__main__":
         # Se añaden los resultados de las métricas a la lista:
         metricas_baseline.append(resultados_baseline)
 
-        print("Evaluación PU completada")
+        print(f"\nFold {fold_num} completado.")
+
+    # Detenemos CodeCarbon tras la evaluación:
+    emisiones_baseline = tracker_baseline.stop()
+
+    print("Evaluacion PU sin Two-Step Methods completada")
+    print(f"Emisiones: {emisiones_baseline} kg CO2.\n")
 
 
-        # PU con Two-Step Methods:
 
-        # Codecarbon:
-        #tracker = EmissionsTracker()
-        #tracker.start()
+    # Entrenamiento y Evaluación PU con Two-Step Methods:
+    print("\nEntrenamiento y Evaluacion PU con Two-Step Methods:\n")
+
+    # Iniciamos CodeCarbon:
+    tracker = EmissionsTracker(
+        project_name = "Two-Step",
+        output_dir = RESULTADOS,
+        output_file = "codecarbon.csv"
+    )
+    tracker.start()
+
+    # Bucle principal:
+    for fold_num in range(1, NUM_FOLDS + 1):
+        print(f"\nFold {fold_num}:")
+
+        # Carga del dataset de test (solo uno de los folds, no PU):
+        X_test, y_test = cargar_bank_marketing(RUTA_FOLDS / f"fold_{fold_num}.csv")
+
+        # Se juntan el resto de folds para formar el dataset de entrenamiento, PU:
+        indices_folds_entrenamiento = [i for i in range(1, NUM_FOLDS + 1) if i != fold_num]
+        X_train_pu, y_train_pu = juntar_folds_separados(RUTA_FOLDS_PU, indices_folds_entrenamiento)
 
         # Búsqueda de Negativos Fiables:
         match MET_NEG_FIABLES:
@@ -234,14 +366,22 @@ if __name__ == "__main__":
         # Se añaden los resultados de las métricas a la lista:
         metricas_two_step.append(resultados_two_step)
 
-        # Codecarbon:
-        #emissions = tracker.stop()
-        #print(f"Emisiones: {emissions} kg CO2")
-
-        print("Evaluación PU con Two-Step Methods completada")
+        print(f"\nFold {fold_num} completado.")
     
-    # Estadísticas finales:
+    # Detenemos CodeCarbon tras la evaluación:
+    emisiones = tracker.stop()
 
+    print("Evaluacion PU con Two-Step Methods completada")
+    print(f"Emisiones: {emisiones} kg CO2.\n")
+
+
+    # Se escriben las estadísticas finales en el archivo de guardado:
+    escribir_resultados(metricas_benchmark, RUTA_TXT, "Resultados no PU")
+    escribir_resultados(metricas_baseline, RUTA_TXT, "Resultados PU sin Two-Step Methods")
+    escribir_resultados(metricas_two_step, RUTA_TXT, "Resultados PU con Two-Step Methods")
+
+    '''
+    # Estadísticas finales:
     benchmark = pd.DataFrame(metricas_benchmark)
     baseline = pd.DataFrame(metricas_baseline)
     two_step = pd.DataFrame(metricas_two_step)
@@ -271,6 +411,7 @@ if __name__ == "__main__":
     f.write(two_step.std().to_string().replace("\n", "\n\t"))
 
     f.write("\n\n\n")
+    '''
 
     print("Evaluacion finalizada correctamente.")
     print(f"Informe guardado en: {RUTA_TXT}")
