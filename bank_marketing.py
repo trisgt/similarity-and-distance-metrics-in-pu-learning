@@ -3,7 +3,7 @@ import pandas as pd
 from pathlib import Path
 from codecarbon import EmissionsTracker
 
-from config import ENGINEERED_DATASETS, SPLIT_DATASETS, RESULTADOS
+from config.paths_config import *
 from preprocesado.kfold import juntar_folds_separados
 from preprocesado.pr_bank_marketing import cargar_bank_marketing, NUM_FOLDS, CL_POSITIVAS, PORCENTAJE_POS
 from two_step_techniques.negativos_fiables import rocchio, knn, kmeans, kmedoids, crne

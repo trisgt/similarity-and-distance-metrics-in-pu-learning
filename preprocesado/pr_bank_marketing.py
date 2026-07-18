@@ -1,12 +1,5 @@
 import pandas as pd
-import os
-from sklearn.model_selection import train_test_split
-
-from pathlib import Path
-import sys
-ROOT = Path(__file__).resolve().parent.parent
-sys.path.append(str(ROOT))
-from config import DATASETS, ENGINEERED_DATASETS, SPLIT_DATASETS
+from config.paths_config import DATASETS, ENGINEERED_DATASETS, SPLIT_DATASETS
 
 try:
     from preprocesado.preprocesado_dt import convertir_a_pu, guardar_dataset_pu
