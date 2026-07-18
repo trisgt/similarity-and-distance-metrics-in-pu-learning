@@ -7,7 +7,7 @@ from xgboost import XGBClassifier
 
 # Función auxiliar para construír el set de datos con el que se entrenará al modelo.
 # Este se construye únicamente con los datos positivos (P) y los negativos fiables (RN):
-def construir_dataset_entrenamiento(X, y, RN):
+def construir_dataset_entrenamiento(X, y, RN, balanceo_clases = False):
     # Transformamos "X" e "y" en arrays de numpy para una mayor eficiencia:
     X = np.asarray(X)
     y = np.asarray(y)
@@ -25,13 +25,27 @@ def construir_dataset_entrenamiento(X, y, RN):
     X_train = X_train[indices]
     y_train = y_train[indices]
 
-    return X_train, y_train
+    # Por defecto, no habrá pesos por clase:
+    pesos = None
+
+    # Si la opción está activada, calculamos el peso para cada clase:
+    if balanceo_clases:
+        # Primero calculamos el número de ejemplos de cada clase:
+        num_pos = np.sum(y_train == 1)
+        num_neg = np.sum(y_train == 0)
+
+        # Calculamos los pesos:
+        peso_pos = len(y_train) / (num_pos * 2)
+        peso_neg = len(y_train) / (num_neg * 2)
+        pesos = np.where(y_train == 1, peso_pos, peso_neg)
+
+    return X_train, y_train, pesos
 
 
 # Logistic Regression:
-def logistic_regression(X, y, RN, penalty = "l2", C = 1, semilla = None):
+def logistic_regression(X, y, RN, penalty = "l2", C = 1, semilla = None, balanceo_clases = False):
     # Creamos el dataset:
-    X_train, y_train = construir_dataset_entrenamiento(X, y, RN)
+    X_train, y_train, pesos = construir_dataset_entrenamiento(X, y, RN, balanceo_clases)
 
     # Creamos el clasificador y lo entrenamos:
     modelo = LogisticRegression(
@@ -40,16 +54,16 @@ def logistic_regression(X, y, RN, penalty = "l2", C = 1, semilla = None):
         random_state = semilla,
         max_iter = 1000
     )
-    modelo.fit(X_train, y_train)
+    modelo.fit(X_train, y_train, sample_weight = pesos)
 
     print("\nAprendizaje con Logistic Regression completado.")
     return modelo
 
 
 # Random Forest:
-def random_forest(X, y, RN, n_estimators = 10, criterion = "gini", max_depth = 50, semilla = None):
+def random_forest(X, y, RN, n_estimators = 10, criterion = "gini", max_depth = 50, semilla = None, balanceo_clases = False):
     # Creamos el dataset:
-    X_train, y_train = construir_dataset_entrenamiento(X, y, RN)
+    X_train, y_train, pesos = construir_dataset_entrenamiento(X, y, RN, balanceo_clases)
 
     # Creamos el clasificador y lo entrenamos:
     modelo = RandomForestClassifier(
@@ -58,29 +72,29 @@ def random_forest(X, y, RN, n_estimators = 10, criterion = "gini", max_depth = 5
         max_depth = max_depth,          # Profundidad del árbol
         random_state = semilla
     )
-    modelo.fit(X_train, y_train)
+    modelo.fit(X_train, y_train, sample_weight = pesos)
 
     print("\nAprendizaje con Random Forest completado.")
     return modelo
 
 
 # XGBoost:
-def xgboost_lrn(X, y, RN, semilla = None):
+def xgboost_lrn(X, y, RN, semilla = None, balanceo_clases = False):
     # Creamos el dataset:
-    X_train, y_train = construir_dataset_entrenamiento(X, y, RN)
+    X_train, y_train, pesos = construir_dataset_entrenamiento(X, y, RN, balanceo_clases)
 
     # Creamos el clasificador y lo entrenamos:
     modelo = XGBClassifier(random_state = semilla)
-    modelo.fit(X_train, y_train)
+    modelo.fit(X_train, y_train, sample_weight = pesos)
 
     print("\nAprendizaje con XGBoost completado.")
     return modelo
 
 
 # Perceptrón Multicapa (MLP):
-def mlp(X, y, RN, hidden_layer_sizes = (10, 10), activation = "tanh", semilla = None):
+def mlp(X, y, RN, hidden_layer_sizes = (10, 10), activation = "tanh", semilla = None, balanceo_clases = False):
     # Creamos el dataset:
-    X_train, y_train = construir_dataset_entrenamiento(X, y, RN)
+    X_train, y_train, pesos = construir_dataset_entrenamiento(X, y, RN, balanceo_clases)
 
     # Creamos el clasificador y lo entrenamos:
     modelo = MLPClassifier(
@@ -89,7 +103,7 @@ def mlp(X, y, RN, hidden_layer_sizes = (10, 10), activation = "tanh", semilla = 
         max_iter = 1000,
         random_state = semilla
     )
-    modelo.fit(X_train, y_train)
+    modelo.fit(X_train, y_train, sample_weight = pesos)
 
     print("\nAprendizaje con Perceptron Multicapa (MLP) completado.")
     return modelo

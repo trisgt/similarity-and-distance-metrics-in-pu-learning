@@ -6,7 +6,6 @@ from codecarbon import EmissionsTracker
 from config import ENGINEERED_DATASETS, SPLIT_DATASETS, RESULTADOS
 from preprocesado.kfold import juntar_folds_separados
 from preprocesado.pr_bank_marketing import cargar_bank_marketing, NUM_FOLDS, CL_POSITIVAS, PORCENTAJE_POS
-from two_step_techniques.cargar_pu import cargar_dataset_pu
 from two_step_techniques.negativos_fiables import rocchio, knn, kmeans, kmedoids, crne
 from two_step_techniques.aprendizaje import logistic_regression, random_forest, xgboost_lrn, mlp
 from evaluacion.evaluacion import informacion_evaluacion, evaluacion_dataset
@@ -35,6 +34,7 @@ MAX_DEPTH = 50          # Con Random Forest
 HIDDEN_LAYER_SIZES = (10, 10)   # Con Perceptrón Multicapa
 ACTIVATION = "tanh"     # Con Perceptrón Multicapa
 SEMILLA_L = 1
+BALANCEO_CLASES = True
 
 # Rutas para eel dataset de entrenamiento (PU) y de test (no PU), en folds:
 RUTA_FOLDS_PU = ENGINEERED_DATASETS / "bank_marketing"
@@ -74,6 +74,20 @@ def elegir_metodo_aprendizaje(
     return modelo
 
 
+# Función auxiliar para calcular los pesos de las clases a partir de el conjunto de entrenamiento:
+def calcular_pesos(y_train):
+    # Calculamos el número de ejemplos de cada clase:
+    num_pos = np.sum(y_train == 1)
+    num_neg = np.sum(y_train == 0)
+
+    # Calculamos el peso para cada clase:
+    peso_pos = len(y_train) / (num_pos * 2)
+    peso_neg = len(y_train) / (num_neg * 2)
+    pesos = np.where(y_train == 1, peso_pos, peso_neg)
+
+    return pesos
+
+
 # Función auxiliar para escribir en el archivo de resultados:
 def escribir_resultados(metricas, ruta_guardado, nombre):
     # Las métricas se convierten a un DataFrame de pandas:
@@ -96,33 +110,6 @@ def escribir_resultados(metricas, ruta_guardado, nombre):
 
     # El archivo se cierra:
     f.close()
-
-
-'''
-# Se abre el archivo:
-    f = open(RUTA_TXT, "a")
-
-    # Resultados del benchmark:
-    f.write("No PU:")
-    f.write("\n\nMedia:\n")
-    f.write(benchmark.mean().to_string())
-    f.write("\n\tDesviacion tipica:\n\t")
-    f.write(benchmark.std().to_string().replace("\n", "\n\t"))
-'''
-
-'''
-    for fold_num in range(1, NUM_FOLDS + 1):
-        print(f"\n\nFold {fold_num}:\n")
-
-        # Carga del dataset de test (solo uno de los folds, no PU):
-        X_test, y_test = cargar_bank_marketing(RUTA_FOLDS / f"fold_{fold_num}.csv")
-
-        # Se juntan el resto de folds para formar el dataset de entrenamiento.
-        # Se forman dos conjuntos: uno no PU (para el Benchmark) y otro PU:
-        indices_folds_entrenamiento = [i for i in range(1, NUM_FOLDS + 1) if i != fold_num]
-        X_train, y_train = juntar_folds_separados(RUTA_FOLDS, indices_folds_entrenamiento)
-        X_train_pu, y_train_pu = juntar_folds_separados(RUTA_FOLDS_PU, indices_folds_entrenamiento)
-'''
 
 
 # Función principal:
@@ -180,17 +167,6 @@ if __name__ == "__main__":
             ACTIVATION,
             SEMILLA_L
         )
-
-        '''
-        # CodeCarbon:
-        tracker_benchmark = EmissionsTracker(
-            project_name = "Benchmark",
-            output_dir = RESULTADOS,
-            output_file = "codecarbon.csv"
-        )
-
-        tracker_benchmark.start()
-        '''
         
         # Se entrena el modelo:
         modelo_benchmark.fit(X_train, y_train)
@@ -255,21 +231,14 @@ if __name__ == "__main__":
             ACTIVATION,
             SEMILLA_L
         )
-    
-        '''
-        # CodeCarbon para PU sin Two-Step Methods:
-        tracker_baseline = EmissionsTracker(
-            project_name = "Baseline",
-            output_dir = RESULTADOS,
-            output_file = "codecarbon.csv"
-        )
 
-        tracker_baseline.start()
-        '''
+        # Si la opción está activada, balanceamos los clases. Si no, entrenamos sin balancear:
+        if BALANCEO_CLASES:
+            pesos = calcular_pesos(y_train_pu) # Calculamos los pesos de cada clase
+            modelo_baseline.fit(X_train_pu, y_train_pu, sample_weight = pesos)
+        else:
+            modelo_baseline.fit(X_train_pu, y_train_pu)
     
-        # Entrenamiento del modelo seleccionado:
-        modelo_baseline.fit(X_train_pu, y_train_pu)
-
         # El modelo entrenado se utiliza para predecir las clases del conjunto de test:
         y_pred_baseline = modelo_baseline.predict(X_test)
 
@@ -337,13 +306,13 @@ if __name__ == "__main__":
         # Aprendizaje con Positivos y Negativos Fiables:
         match MET_APRENDIZAJE:
             case "Logistic Regression":
-                modelo = logistic_regression(X_train_pu, y_train_pu, RN, PENALTY, C, SEMILLA_L)
+                modelo = logistic_regression(X_train_pu, y_train_pu, RN, PENALTY, C, SEMILLA_L, BALANCEO_CLASES)
             case "Random Forest":
-                modelo = random_forest(X_train_pu, y_train_pu, RN, N_ESTIMATORS, CRITERION, MAX_DEPTH, SEMILLA_L)
+                modelo = random_forest(X_train_pu, y_train_pu, RN, N_ESTIMATORS, CRITERION, MAX_DEPTH, SEMILLA_L, BALANCEO_CLASES)
             case "XGBoost":
-                modelo = xgboost_lrn(X_train_pu, y_train_pu, RN, SEMILLA_L)
+                modelo = xgboost_lrn(X_train_pu, y_train_pu, RN, SEMILLA_L, BALANCEO_CLASES)
             case "MLP":
-                modelo = mlp(X_train_pu, y_train_pu, RN, HIDDEN_LAYER_SIZES, ACTIVATION, SEMILLA_L)
+                modelo = mlp(X_train_pu, y_train_pu, RN, HIDDEN_LAYER_SIZES, ACTIVATION, SEMILLA_L, BALANCEO_CLASES)
             case "CNN":
                 raise ValueError("CNN aun no implementado")
             case _:
@@ -375,43 +344,11 @@ if __name__ == "__main__":
     print(f"Emisiones: {emisiones} kg CO2.\n")
 
 
+
     # Se escriben las estadísticas finales en el archivo de guardado:
     escribir_resultados(metricas_benchmark, RUTA_TXT, "Resultados no PU")
     escribir_resultados(metricas_baseline, RUTA_TXT, "Resultados PU sin Two-Step Methods")
     escribir_resultados(metricas_two_step, RUTA_TXT, "Resultados PU con Two-Step Methods")
-
-    '''
-    # Estadísticas finales:
-    benchmark = pd.DataFrame(metricas_benchmark)
-    baseline = pd.DataFrame(metricas_baseline)
-    two_step = pd.DataFrame(metricas_two_step)
-
-    # Se abre el archivo:
-    f = open(RUTA_TXT, "a")
-
-    # Resultados del benchmark:
-    f.write("No PU:")
-    f.write("\n\nMedia:\n")
-    f.write(benchmark.mean().to_string())
-    f.write("\n\tDesviacion tipica:\n\t")
-    f.write(benchmark.std().to_string().replace("\n", "\n\t"))
-
-    # Resultados del baseline:
-    f.write("\n\nPU sin Two-Step Methods:")
-    f.write("\n\nMedia:\n")
-    f.write(baseline.mean().to_string())
-    f.write("\n\tDesviacion tipica:\n\t")
-    f.write(baseline.std().to_string().replace("\n", "\n\t"))
-
-    # Resultados del two step:
-    f.write("\n\nPU con Two-Step Methods:")
-    f.write("\n\nMedia:\n")
-    f.write(two_step.mean().to_string())
-    f.write("\n\tDesviacion tipica:\n\t")
-    f.write(two_step.std().to_string().replace("\n", "\n\t"))
-
-    f.write("\n\n\n")
-    '''
 
     print("Evaluacion finalizada correctamente.")
     print(f"Informe guardado en: {RUTA_TXT}")
