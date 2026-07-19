@@ -1,7 +1,7 @@
 from pathlib import Path
 
 # Raíz (como un Path):
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parent.parent
 
 # Rutas para datos y resultados:
 DATOS = ROOT / "datos"

@@ -36,13 +36,14 @@ ACTIVATION = "tanh"     # Con Perceptrón Multicapa
 SEMILLA_L = 1
 BALANCEO_CLASES = True
 
-# Rutas para eel dataset de entrenamiento (PU) y de test (no PU), en folds:
+# Rutas para el dataset de entrenamiento (PU) y de test (no PU), en folds:
 RUTA_FOLDS_PU = ENGINEERED_DATASETS / "bank_marketing"
 RUTA_FOLDS = SPLIT_DATASETS / "bank_marketing"
 
 # Ruta y nombre del .txt para los resultados:
 RUTA_TXT = RESULTADOS / "bank_marketing.txt"
 NOMBRE = "Bank Marketing"
+
 
 # Función auxiliar para la elección de un modelo de aprendizaje (sin Two-Step):
 def elegir_metodo_aprendizaje(
