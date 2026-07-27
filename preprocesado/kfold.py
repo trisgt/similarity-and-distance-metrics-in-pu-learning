@@ -80,6 +80,21 @@ def generar_folds_pu(ruta_original, ruta_pu, k, clases_positivas, porcentaje_pos
     print(f"Se han creado {k} folds PU en: {ruta_pu}")
 
 
+# Función para cargar un fold de un dataset:
+def cargar_fold(ruta_fold):
+    # Se obtiene el dataframe del fold:
+    dataframe = pd.read_csv(ruta_fold, sep = ";")
+
+    # El dataframe se separa en "X" e "y". Si hubiese una columna "y_gt" (folds PU), se descarta:
+    if "y_gt" in dataframe.columns:
+        X = dataframe.drop(columns = ["y", "y_gt"])
+    else:
+        X = dataframe.drop(columns = "y") # Evitamos que de error
+    y = dataframe["y"]
+
+    return X, y
+
+
 # Función para juntar varios folds del mismo dataset en un solo dataset (para entrenamiento):
 def juntar_folds_separados(ruta_folds, folds):
     # Creamos dos listas para "X" e "y", que luego servirán para concatenar los folds:
@@ -92,15 +107,8 @@ def juntar_folds_separados(ruta_folds, folds):
         nombre_fold = f"fold_{fold_num}.csv"
         ruta_fold = Path(ruta_folds) / nombre_fold
 
-        # Se obtiene el dataframe a partir del fold, y se separa en "X" e "y" ("y_gt" es ignorado):
-        dataframe = pd.read_csv(ruta_fold, sep = ";")
-
-        # El dataframe se separa en "X" e "y". Si hubiese una columna "y_gt" (folds PU), se descarta:
-        if "y_gt" in dataframe.columns:
-            X = dataframe.drop(columns = ["y", "y_gt"])
-        else:
-            X = dataframe.drop(columns = "y") # Evitamos que de error
-        y = dataframe["y"]
+        # Se carga el fold con la ruta obtenida:
+        X, y = cargar_fold(ruta_fold)
 
         # Se añaden los valores de "X" e "y" a la lista
         lista_X.append(X)

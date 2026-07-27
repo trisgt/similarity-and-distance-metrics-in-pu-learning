@@ -1,4 +1,4 @@
-from sklearn.metrics import precision_score, recall_score, f1_score, precision_recall_curve, auc
+from sklearn.metrics import f1_score, precision_recall_curve, auc
 
 # Función para dar información al usuario sobre la evaluación actual:
 def informacion_evaluacion(
@@ -34,20 +34,14 @@ def informacion_evaluacion(
         print(f"Informacion guardada en \"{path_guardado}\"")
 
 
-# Función para evaluar los resultados de un modelo tras entrenamiento.
-# Se usan precision, recall y F1-Score (accuracy no es relevante):
+# Función para evaluar los resultados de un modelo tras entrenamiento, con F1-Score y PR-AUC:
 def evaluacion_dataset(y_true, y_pred, y_score):
     # Para PR-ROC, calculamos los valores de precision y recall a partir de la curva:
     vals_precision, vals_recall, _ = precision_recall_curve(y_true, y_score)
 
     metricas = {
-        #"Precision": precision_score(y_true, y_pred, zero_division = 0), # Ignorar
-        #"Recall": recall_score(y_true, y_pred, zero_division = 0), # Ignorar
         "F1-Score": f1_score (y_true, y_pred, zero_division = 0),
-        "PR-AUC": auc(vals_recall, vals_precision) # Añadir PR-AUC (No ROC-AUC)
+        "PR-AUC": auc(vals_recall, vals_precision)
     }
 
     return metricas
-
-
-# Función para calcular las medias y desviaciones típicas tras K-fold:
