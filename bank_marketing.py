@@ -1,14 +1,17 @@
-from config.paths_config import *
+from config.paths_config import ENGINEERED_DATASETS, SPLIT_DATASETS, RESULTADOS
 from preprocesado.pr_bank_marketing import NUM_FOLDS, CL_POSITIVAS, PORCENTAJE_POS
 from entrenamiento_y_eval import entrenamiento_y_eval
 
-# Rutas para el dataset de entrenamiento (PU) y de test (no PU), en folds:
-RUTA_FOLDS_PU = ENGINEERED_DATASETS / "bank_marketing"
+# Rutas para los folds, tanto PU como no PU. Para el conjunto de test,
+# se usarán siempre los no PU. Para el de entrenamiento, depende:
 RUTA_FOLDS = SPLIT_DATASETS / "bank_marketing"
+RUTA_FOLDS_PU = ENGINEERED_DATASETS / "bank_marketing"
 
-# Ruta y nombre del .txt para los resultados:
-RUTA_TXT = RESULTADOS / "bank_marketing.txt"
+# Nombre del dataset, utilizado para dar información:
 NOMBRE = "Bank Marketing"
+
+# Ruta del .txt para guardar los resultados:
+RUTA_TXT = RESULTADOS / "bank_marketing.txt"
 
 # Función principal:
 if __name__ == "__main__":
@@ -18,5 +21,6 @@ if __name__ == "__main__":
         NUM_FOLDS,
         CL_POSITIVAS,
         PORCENTAJE_POS,
-        "BM", RUTA_TXT,
-        "Bank Marketing")
+        NOMBRE,
+        RUTA_TXT
+    )
