@@ -1,7 +1,11 @@
+# Python:
 __pycache__/
 *.py[cod]
 *.pyo
+
+# Visual Studio Code:
 .vscode/
 
-# CodeCarbon:
-codecarbon.csvs
+# Carpetas de datos y resultados:
+datos
+resultados
