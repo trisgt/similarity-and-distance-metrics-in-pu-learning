@@ -215,7 +215,7 @@ def entr_y_eval_pu_sin_ts(ruta_folds, ruta_folds_pu, num_folds, cl_positivas, me
         # Se añaden los resultados de las métricas a la lista:
         metricas.append(resultados_pu_sin_ts)
 
-        print(f"\nFold {fold_num} completado.")
+        print(f"Fold {fold_num} completado.")
 
     # Detenemos CodeCarbon tras la evaluación:
     emisiones = tracker.stop()
