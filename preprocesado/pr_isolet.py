@@ -2,7 +2,7 @@ import pandas as pd
 from config.paths_config import DATASETS, ENGINEERED_DATASETS, SPLIT_DATASETS
 from preprocesado.kfold import separar_dataset_en_k, generar_folds_pu
 
-# Rutas del dataset original de entrenamiento y del dataset convertido a PU:
+# Rutas del dataset original de entrenamiento y de test:
 RUTA_DT_TRAIN = DATASETS / "isolet" / "isolet1+2+3+4.data"
 RUTA_DT_TEST = DATASETS / "isolet" / "isolet5.data"
 
@@ -22,20 +22,12 @@ PORCENTAJE_POS = 0.6
 SEMILLA_PR = 1
 
 # Función para cargar el dataset original. Se concatenan los de entrenamiento y test para luego hacer k-folds:
-def cargar_isolet(path_train, path_test = None, carga_fold = False):
-    # Diferencia para cargar el dataset original y un fold en entrenamiento:
-    if carga_fold is False:
-        dataframe_train = pd.read_csv(path_train, sep = ",", header = None)
-    else:
-        dataframe_train = pd.read_csv(path_train, sep = ";")
+def cargar_isolet(path_train, path_test):
+    dataframe_train = pd.read_csv(path_train, sep = ",", header = None)
+    dataframe_test = pd.read_csv(path_test, sep = ",", header = None)
 
-    # Si se proporciona la ruta de test, se concatena con la de entrenamiento.
-    # Si no, se asume que el conjunto final es solo el primero:
-    if path_test is not None:
-        dataframe_test = pd.read_csv(path_test, sep = ",", header = None)
-        dataframe = pd.concat([dataframe_train, dataframe_test], ignore_index = True)
-    else:
-        dataframe = dataframe_train
+    # Tras leer el dataset de entrenamiento y test, ambos se concatenan:
+    dataframe = pd.concat([dataframe_train, dataframe_test], ignore_index = True)
 
     # "y" es la última columna. Como ISOLET no tiene cabecera, se busca sin un nombre:
     y = dataframe.iloc[:, -1].astype(int)

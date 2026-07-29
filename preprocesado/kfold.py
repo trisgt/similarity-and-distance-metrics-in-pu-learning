@@ -3,7 +3,7 @@ import pandas as pd
 from pathlib import Path
 from sklearn.model_selection import StratifiedKFold
 
-from preprocesado.preprocesado_dt import convertir_a_pu, guardar_dataset_pu
+from preprocesado.pu_engineering import convertir_a_pu, guardar_dataset_pu
 
 
 # Función para separar un dataset en K-folds:
