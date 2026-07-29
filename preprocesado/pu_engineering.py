@@ -4,7 +4,7 @@ import os
 
 # Función principal para transformar un set de datos a uno de datos PU ("engineered"),
 # donde "X" es la matriz con características (y muestras), e "y" son las etiquetas (ground truth):
-def convertir_a_pu(X, y, clases_positivas, porcentaje_positivos, semilla = None):
+def convertir_a_pu(X, y, clases_positivas, porcentaje_positivos, semilla = None, nombre_fold = None):
     # "X" e "y" se pasan como dataframes de pandas. Solo "y" se convierte a un array de Numpy:
     y = np.asarray(y)
 
@@ -34,38 +34,32 @@ def convertir_a_pu(X, y, clases_positivas, porcentaje_positivos, semilla = None)
     y_pu[pos_sel_idx] = 1
 
     # El proceso se ha realizado correctamente, y se le enseña información al usuario:
-    print("Dataset convertido a PU correctamente")
-    #informacion_dataset(y_pu, y, clases_positivas, num_pos, num_pos_sel)
+    print("\nDataset convertido a PU correctamente.")
+    info_pu_engineering(y_pu, num_pos, num_pos_sel, nombre_fold)
 
     # Devolvemos "X" e "y" del dataset PU, además del "y" original:
     return X, y_pu, y
 
 
-# Función auxiliar para resumir el estado del dataset tras PU engineering:
-def informacion_dataset(y, y_gt, clases_positivas, num_positivos, num_positivos_tras_pu):
-    print("\nInformacion del dataset:")
+# Función auxiliar simplificada para resumir el estado de cada fold tras PU engineering:
+def info_pu_engineering(y, num_pos_reales, num_pos_pu, nombre_fold = None):
+    print(f"\n{nombre_fold}:")
 
-    # Clases originales, con número de muestras de cada clase:
-    print("\nClases originales:")
-    clases_gt, num_muestras_gt = np.unique(y_gt, return_counts = True)
-    for c, n in zip(clases_gt, num_muestras_gt):
-        print(f"Clase {c}: {n}")
-    print(f"Numero de clases: {len(clases_gt)}")
+    # Número de muestras del fold:
+    num_muestras = len(y)
+    print(f"\tMuestras: {num_muestras}")
 
-    # Clases seleccionadas como positivas para PU:
-    print(f"\nClases seleccionadas: {clases_positivas}")
-    print(f"Numero de clases seleccionadas: {len(clases_positivas)}")
+    # Número de positivos reales:
+    porcentaje_pos_reales = (num_pos_reales / num_muestras) * 100
+    print(f"\tPositivos reales: {num_pos_reales} ({porcentaje_pos_reales:.2f} %)")
 
-    # Etiquetas tras PU engineering:
-    print("\nEtiquetas tras PU engineering:")
-    clases, num_muestras = np.unique(y, return_counts = True)
-    for c, n in zip(clases, num_muestras):
-        print(f"Etiqueta {c}: {n}")
+    # Número de positivos tras PU engineering:
+    porcentaje_pos_pu = (num_pos_pu / num_muestras) * 100
+    print(f"\tPositivos tras PU engineering : {num_pos_pu} ({porcentaje_pos_pu:.2f} %)")
 
-    # Número de posirivos en el dataset original y tras PU engineering:
-    print(f"\nNumero de positivos de las clases seleccionadas: {num_positivos}")
-    print(f"Numero de positivos tras PU engineering: {num_positivos_tras_pu}")
-    print(f"Ratio etiquetado tras PU engineering: {num_positivos_tras_pu / num_positivos}\n")
+    # Porcentaje de positivos etiquetados tras PU engineering:
+    porcentaje_etiquetado = (num_pos_pu / num_pos_reales) * 100
+    print(f"\tRatio etiquetado: {porcentaje_etiquetado:.2f} %\n")
 
 
 # Función para guardar el dataset generado por "convertir_a_pu" en una carpeta.

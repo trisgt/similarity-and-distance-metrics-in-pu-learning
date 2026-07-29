@@ -71,7 +71,7 @@ def generar_folds_pu(ruta_original, ruta_pu, k, clases_positivas, porcentaje_pos
         y = dataframe["y"]
 
         # Se convierte el fold a PU:
-        X_pu, y_pu, y_gt = convertir_a_pu(X, y, clases_positivas, porcentaje_positivos, semilla)
+        X_pu, y_pu, y_gt = convertir_a_pu(X, y, clases_positivas, porcentaje_positivos, semilla, f"Fold {fold_num}")
 
         # Se guarda el fold en la ruta deseada:
         ruta_pu = Path(ruta_pu)

@@ -1,12 +1,6 @@
 import pandas as pd
 from config.paths_config import DATASETS, ENGINEERED_DATASETS, SPLIT_DATASETS
-
-try:
-    from preprocesado.preprocesado_dt import convertir_a_pu, guardar_dataset_pu
-    from preprocesado.kfold import separar_dataset_en_k, generar_folds_pu
-except ModuleNotFoundError:
-    from preprocesado_dt import convertir_a_pu, guardar_dataset_pu
-    from kfold import separar_dataset_en_k, generar_folds_pu
+from preprocesado.kfold import separar_dataset_en_k, generar_folds_pu
 
 # Rutas del dataset original de entrenamiento y del dataset convertido a PU:
 RUTA_DT_TRAIN = DATASETS / "isolet" / "isolet1+2+3+4.data"
