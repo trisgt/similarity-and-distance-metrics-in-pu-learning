@@ -13,8 +13,11 @@ RUTA_FOLDS = SPLIT_DATASETS / "isolet"
 RUTA_FOLDS_PU = ENGINEERED_DATASETS / "isolet"
 
 # Parámetros para el split del dataset en k-folds:
-NUM_FOLDS = 5 # Por defecto, 5 (5-fold)
+NUM_FOLDS = 5
 SEMILLA_SPLIT = 1
+
+# Parámetros para el guardado de los datasets:
+GUARDADO_NPY = True # Si es falso, los datasets se guardan como ".csv"
 
 # Parámetros para el preprocesado:
 CL_POSITIVAS = 1
@@ -48,7 +51,8 @@ if __name__ == "__main__":
         y,
         NUM_FOLDS,
         RUTA_FOLDS,
-        SEMILLA_SPLIT
+        SEMILLA_SPLIT,
+        GUARDADO_NPY
     )
 
     # Transformación de los folds a PU. La conversión se hace dentro de
@@ -60,8 +64,7 @@ if __name__ == "__main__":
         CL_POSITIVAS,
         PORCENTAJE_POS,
         SEMILLA_PR,
-        False,
-        True
+        GUARDADO_NPY
     )
 
     print("Preprocesado completado")
