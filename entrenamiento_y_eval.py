@@ -107,8 +107,8 @@ def entr_y_eval_no_pu(ruta_folds, guardado_npy, num_folds, cl_positivas, metrica
         indices_folds_entrenamiento = [i for i in range(1, num_folds + 1) if i != fold_num]
         X_train, y_train = juntar_folds_separados(ruta_folds, indices_folds_entrenamiento, guardado_npy)    
 
-        # Se elige el modelo para el benchmark:
-        modelo_benchmark = elegir_metodo_aprendizaje(
+        # Se elige el modelo no PU:
+        modelo_no_pu = elegir_metodo_aprendizaje(
             MET_APRENDIZAJE,
             PENALTY,
             C,
@@ -124,20 +124,24 @@ def entr_y_eval_no_pu(ruta_folds, guardado_npy, num_folds, cl_positivas, metrica
         y_train = np.isin(y_train, cl_positivas).astype(int)
         y_test = np.isin(y_test, cl_positivas).astype(int)
 
-        # Se entrena el modelo:
-        modelo_benchmark.fit(X_train, y_train)
+        # Si la opción está activada, balanceamos los clases. Si no, entrenamos sin balancear:
+        if BALANCEO_CLASES:
+            pesos = calcular_pesos(y_train) # Calculamos los pesos de cada clase
+            modelo_no_pu.fit(X_train, y_train, sample_weight = pesos)
+        else:
+            modelo_no_pu.fit(X_train, y_train)
 
         # El modelo entrenado se utiliza para predecir las clases del conjunto de test:
-        y_pred_benchmark = modelo_benchmark.predict(X_test)
+        y_pred_no_pu = modelo_no_pu.predict(X_test)
 
         # Obtenemos también las probabilidades que el modelo asigna a la clase positiva:
-        y_score_benchmark = modelo_benchmark.predict_proba(X_test)[:, 1]
+        y_score_no_pu = modelo_no_pu.predict_proba(X_test)[:, 1]
 
         # Se evalúa el modelo:
         resultados_no_pu = evaluacion_dataset(
             y_test,
-            y_pred_benchmark,
-            y_score_benchmark
+            y_pred_no_pu,
+            y_score_no_pu
         )
 
         # Se añaden los resultados de las métricas a la lista:
@@ -178,8 +182,8 @@ def entr_y_eval_pu_sin_ts(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl
         indices_folds_entrenamiento = [i for i in range(1, num_folds + 1) if i != fold_num]
         X_train_pu, y_train_pu = juntar_folds_separados(ruta_folds_pu, indices_folds_entrenamiento, guardado_npy)
 
-        # Se elige el modelo para el baseline:
-        modelo_baseline = elegir_metodo_aprendizaje(
+        # Se elige el modelo PU sin Two-Step methods:
+        modelo_pu_sin_ts = elegir_metodo_aprendizaje(
             MET_APRENDIZAJE,
             PENALTY,
             C,
@@ -194,22 +198,22 @@ def entr_y_eval_pu_sin_ts(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl
         # Si la opción está activada, balanceamos los clases. Si no, entrenamos sin balancear:
         if BALANCEO_CLASES:
             pesos = calcular_pesos(y_train_pu) # Calculamos los pesos de cada clase
-            modelo_baseline.fit(X_train_pu, y_train_pu, sample_weight = pesos)
+            modelo_pu_sin_ts.fit(X_train_pu, y_train_pu, sample_weight = pesos)
         else:
-            modelo_baseline.fit(X_train_pu, y_train_pu)
+            modelo_pu_sin_ts.fit(X_train_pu, y_train_pu)
     
         # El modelo entrenado se utiliza para predecir las clases del conjunto de test:
-        y_pred_baseline = modelo_baseline.predict(X_test)
+        y_pred_pu_sin_ts = modelo_pu_sin_ts.predict(X_test)
 
         # Obtenemos también las probabilidades que el modelo asigna a la clase positiva:
-        y_score_baseline = modelo_baseline.predict_proba(X_test)[:, 1]
+        y_score_pu_sin_ts = modelo_pu_sin_ts.predict_proba(X_test)[:, 1]
 
         # Se evalúa el modelo:
         y_true_pu = np.isin(y_test, cl_positivas).astype(int)
         resultados_pu_sin_ts = evaluacion_dataset(
             y_true_pu,
-            y_pred_baseline,
-            y_score_baseline
+            y_pred_pu_sin_ts,
+            y_score_pu_sin_ts
         )
 
         # Se añaden los resultados de las métricas a la lista:

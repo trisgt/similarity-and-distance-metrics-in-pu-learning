@@ -9,7 +9,7 @@ from xgboost import XGBClassifier
 # Este se construye únicamente con los datos positivos (P) y los negativos fiables (RN):
 def construir_dataset_entrenamiento(X, y, RN, balanceo_clases = False):
     # Transformamos "X" e "y" en arrays de numpy para una mayor eficiencia:
-    X = np.asarray(X)
+    X = np.asarray(X, dtype = np.float64)
     y = np.asarray(y)
 
     # Definimos el conjunto de positivos:
