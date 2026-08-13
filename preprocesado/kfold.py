@@ -75,13 +75,13 @@ def generar_folds_pu(ruta_original, ruta_pu, guardado_npy, k, clases_positivas, 
     # Bucle principal:
     for fold_num in range(1, k + 1):
         # Se carga el fold:
-        cargar_fold(ruta_original, fold_num, guardado_npy)
+        X, y = cargar_fold(ruta_original, fold_num, guardado_npy)
 
         # Se convierte el fold a PU:
-        X_pu, y_pu, y_gt = convertir_a_pu(X, y, clases_positivas, porcentaje_positivos, semilla, nombre_fold)
+        X_pu, y_pu, y_gt = convertir_a_pu(X, y, clases_positivas, porcentaje_positivos, semilla, f"Fold {fold_num}")
 
         # Se guarda el fold en la ruta deseada:
-        guardar_dataset_pu(X_pu, y_pu, y_gt, ruta_pu, guardado_npy, f"Fold {fold_num}")
+        guardar_dataset_pu(X_pu, y_pu, y_gt, ruta_pu, guardado_npy, f"fold_{fold_num}")
     
     print(f"Se han creado {k} folds PU en: {ruta_pu}")
 
