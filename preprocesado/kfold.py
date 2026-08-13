@@ -8,7 +8,7 @@ from preprocesado.pu_engineering import convertir_a_pu, guardar_dataset_pu
 
 
 # Función para separar un dataset en K-folds:
-def separar_dataset_en_k(X, y, k, ruta_guardado, semilla = None, guardado_npy = False):
+def separar_dataset_en_k(X, y, k, ruta_guardado, guardado_npy, semilla = None):
     # Se divide el set en K-folds estratificados, con lo que se mantiene
     # la misma proporción de positivos y negativos en cada división, aproximadamente:
     kfold = StratifiedKFold(
@@ -39,7 +39,7 @@ def separar_dataset_en_k(X, y, k, ruta_guardado, semilla = None, guardado_npy = 
 
 
 # Función auxiliar para guardar cada uno de los folds, tanto a ".csv" como a ".npy":
-def guardar_fold(X, y, ruta, fold_num, guardado_npy = False):
+def guardar_fold(X, y, ruta, fold_num, guardado_npy):
     # Establecemos el nombre del fold:
     nombre_fold = f"fold_{fold_num}"
 
@@ -67,47 +67,58 @@ def guardar_fold(X, y, ruta, fold_num, guardado_npy = False):
 
 
 # Función para generar folds PU a partir de los folds originales:
-def generar_folds_pu(ruta_original, ruta_pu, k, clases_positivas, porcentaje_positivos, semilla = None, guardado_npy = False):
+def generar_folds_pu(ruta_original, ruta_pu, guardado_npy, k, clases_positivas, porcentaje_positivos, semilla = None):
     # Primero, se genera el directorio para los folds PU:
+    ruta_pu = Path(ruta_pu)
     os.makedirs(ruta_pu, exist_ok = True)
 
     # Bucle principal:
     for fold_num in range(1, k + 1):
-        # Establecemos el nombre del fold:
-        nombre_fold = f"fold_{fold_num}"
-
-        # Si se guardaron los folds originales como ".npy":
-        if guardado_npy:
-            # Se obtienen las rutas de "X" e "y" originales como un Path:
-            ruta_X = Path(ruta_original) / f"{nombre_fold}_X.npy"
-            ruta_y = Path(ruta_original) / f"{nombre_fold}_y.npy"
-
-            # Se cargan los archivos:
-            X = np.load(ruta_X)
-            y = np.load(ruta_y)
-
-        # Si se guardaron los folds originales como ".csv":
-        else:
-            # Se obtiene la ruta original como un Path:
-            ruta_fold = Path(ruta_original) / f"{nombre_fold}.csv"
-
-            # Se obtiene el dataframe a partir del fold, y se separa en "X" e "y":
-            dataframe = pd.read_csv(ruta_fold, sep = ";")
-            X = dataframe.drop(columns = "y")
-            y = dataframe["y"]
+        # Se carga el fold:
+        cargar_fold(ruta_original, fold_num, guardado_npy)
 
         # Se convierte el fold a PU:
         X_pu, y_pu, y_gt = convertir_a_pu(X, y, clases_positivas, porcentaje_positivos, semilla, nombre_fold)
 
         # Se guarda el fold en la ruta deseada:
-        ruta_pu = Path(ruta_pu)
-        guardar_dataset_pu(X_pu, y_pu, y_gt, ruta_pu, nombre_fold, guardado_npy)
+        guardar_dataset_pu(X_pu, y_pu, y_gt, ruta_pu, guardado_npy, f"Fold {fold_num}")
     
     print(f"Se han creado {k} folds PU en: {ruta_pu}")
 
 
-# Función para cargar un fold de un dataset, tanto ".csv" como ".npy":
-def cargar_fold(ruta_folds, fold_num, guardado_npy = False):
+# Función para juntar varios folds del mismo dataset en un solo dataset (para entrenamiento):
+def juntar_folds_separados(ruta_folds, folds, guardado_npy):
+    # Creamos dos listas para "X" e "y", que luego servirán para concatenar los folds:
+    lista_X = []
+    lista_y = []
+
+    # Bucle principal:
+    for fold_num in folds:
+        # Se carga el fold:
+        X, y = cargar_fold(ruta_folds, fold_num, guardado_npy)
+        
+        # Se añaden los valores de "X" e "y" a la lista
+        lista_X.append(X)
+        lista_y.append(y)
+
+    # Si los folds estaban guardados como ".npy":
+    if guardado_npy:
+        # Se concatenan los arrays en un solo dataset:
+        X = np.concatenate(lista_X, axis = 0)
+        y = np.concatenate(lista_y, axis = 0)
+
+    # Si los folds estaban guardados como ".csv":
+    else:
+        # Se concatenan los dataframes en un solo dataset:
+        X = pd.concat(lista_X, ignore_index = True)
+        y = pd.concat(lista_y, ignore_index = True)
+
+    # El dataset no se guarda, se devuelve directamente:
+    return X, y
+
+
+# Función auxiliar para cargar un fold de un dataset, tanto ".csv" como ".npy":
+def cargar_fold(ruta_folds, fold_num, guardado_npy):
     # Establecemos el nombre del fold:
     nombre_fold = f"fold_{fold_num}"
 
@@ -136,35 +147,4 @@ def cargar_fold(ruta_folds, fold_num, guardado_npy = False):
             X = dataframe.drop(columns = "y") # Evitamos que de error
         y = dataframe["y"]
 
-    return X, y
-
-
-# Función para juntar varios folds del mismo dataset en un solo dataset (para entrenamiento):
-def juntar_folds_separados(ruta_folds, folds, guardado_npy = False):
-    # Creamos dos listas para "X" e "y", que luego servirán para concatenar los folds:
-    lista_X = []
-    lista_y = []
-
-    # Bucle principal:
-    for fold_num in folds:
-        # Se carga el fold:
-        X, y = cargar_fold(ruta_folds, fold_num, guardado_npy)
-        
-        # Se añaden los valores de "X" e "y" a la lista
-        lista_X.append(X)
-        lista_y.append(y)
-
-    # Si los folds estaban guardados como ".npy":
-    if guardado_npy:
-        # Se concatenan los arrays en un solo dataset:
-        X = np.concatenate(lista_X, axis = 0)
-        y = np.concatenate(lista_y, axis = 0)
-
-    # Si los folds estaban guardados como ".csv":
-    else:
-        # Se concatenan los dataframes en un solo dataset:
-        X = pd.concat(lista_X, ignore_index = True)
-        y = pd.concat(lista_y, ignore_index = True)
-
-    # El dataset no se guarda, se devuelve directamente:
     return X, y

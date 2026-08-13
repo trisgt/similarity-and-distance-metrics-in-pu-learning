@@ -16,7 +16,7 @@ NUM_FOLDS = 5
 SEMILLA_SPLIT = 1
 
 # Parámetros para el guardado de los datasets:
-GUARDADO_NPY = True # Si es falso, los datasets se guardan como ".csv"
+GUARDADO_NPY = False # Si es falso, los datasets se guardan como ".csv"
 
 # Parámetros para la conversión a PU:
 CL_POSITIVAS = 1
@@ -52,8 +52,8 @@ if __name__ == "__main__":
         y,
         NUM_FOLDS,
         RUTA_FOLDS,
-        SEMILLA_SPLIT,
-        GUARDADO_NPY
+        GUARDADO_NPY,
+        SEMILLA_SPLIT
     )
 
     # Transformación de los folds a PU. La conversión se hace dentro de
@@ -61,11 +61,11 @@ if __name__ == "__main__":
     generar_folds_pu(
         RUTA_FOLDS,
         RUTA_FOLDS_PU,
+        GUARDADO_NPY,
         NUM_FOLDS,
         CL_POSITIVAS,
         PORCENTAJE_POS,
-        SEMILLA_PR,
-        GUARDADO_NPY
+        SEMILLA_PR
     )
 
     print("Preprocesado completado")

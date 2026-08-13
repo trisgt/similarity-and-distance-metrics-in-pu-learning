@@ -63,8 +63,8 @@ def info_pu_engineering(y, num_pos_reales, num_pos_pu, nombre_fold = None):
 
 
 # Función para guardar el dataset generado por "convertir_a_pu" en una carpeta.
-# Se puede escoger si se guardan los archivos como ".npy" o como ".csv":
-def guardar_dataset_pu(X, y, y_gt, carpeta_salida, nombre, guardado_npy = False):
+# Los archivos se pueden guardar como ".npy" o como ".csv":
+def guardar_dataset_pu(X, y, y_gt, carpeta_salida, guardado_npy, nombre):
     # Primero, creamos la carpeta si aún no existiese:
     os.makedirs(carpeta_salida, exist_ok = True)
 
