@@ -63,21 +63,21 @@ def info_pu_engineering(y, num_pos_reales, num_pos_pu, nombre_fold = None):
 
 
 # Función para guardar el dataset generado por "convertir_a_pu" en una carpeta.
-# Se puede escoger tanto si se guardan los archivos ".npy" como ".csv":
-def guardar_dataset_pu(X, y, y_gt, carpeta_salida, nombre, npy = False, csv = True):
+# Se puede escoger si se guardan los archivos como ".npy" o como ".csv":
+def guardar_dataset_pu(X, y, y_gt, carpeta_salida, nombre, guardado_npy = False):
     # Primero, creamos la carpeta si aún no existiese:
     os.makedirs(carpeta_salida, exist_ok = True)
 
-    # Guardamos los archivos ".npy":
-    if (npy):
+    # Si la opción está activada, guardamos los archivos como ".npy":
+    if guardado_npy:
         np.save(os.path.join(carpeta_salida, f"{nombre}_X.npy"), X)
         np.save(os.path.join(carpeta_salida, f"{nombre}_y.npy"), y)
         np.save(os.path.join(carpeta_salida, f"{nombre}_y_gt.npy"), y_gt)
 
-        print(f"Dataset .npy guardado en: {carpeta_salida}")
+        print(f"Dataset .npy guardado en: {carpeta_salida}\n")
     
-    # Guardamos los archivos ".csv":
-    if (csv):
+    # Si no, guardamos los archivos como ".csv":
+    else:
         # Creamos un dataframe de pandas:
         dataframe = X.copy()
 
@@ -86,9 +86,9 @@ def guardar_dataset_pu(X, y, y_gt, carpeta_salida, nombre, npy = False, csv = Tr
         dataframe["y"] = np.asarray(y)
 
         # Se define la ruta para el archivo:
-        ruta_csv = os.path.join(carpeta_salida, nombre)
+        ruta_csv = os.path.join(carpeta_salida, f"{nombre}.csv")
 
         # Por último, se guarda el archivo CSV con la función "to_csv" de pandas:
         dataframe.to_csv(ruta_csv, index = False, sep = ";")
 
-        print(f"Dataset .csv guardado en: {ruta_csv}")
+        print(f"Dataset .csv guardado en: {ruta_csv}\n")

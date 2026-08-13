@@ -85,7 +85,7 @@ def escribir_resultados(metricas, ruta_guardado, nombre):
 
 
 # Función de Entrenamiento y Evaluación no PU:
-def entr_y_eval_no_pu(ruta_folds, num_folds, cl_positivas, metricas, nombre):
+def entr_y_eval_no_pu(ruta_folds, guardado_npy, num_folds, cl_positivas, metricas, nombre):
     print("\nEntrenamiento y Evaluacion no PU:\n")
 
     # Iniciamos CodeCarbon:
@@ -101,11 +101,11 @@ def entr_y_eval_no_pu(ruta_folds, num_folds, cl_positivas, metricas, nombre):
         print(f"\nFold {fold_num}...")
 
         # Carga del dataset de test (solo uno de los folds, no PU):
-        X_test, y_test = cargar_fold(ruta_folds / f"fold_{fold_num}.csv")
+        X_test, y_test = cargar_fold(ruta_folds, fold_num, guardado_npy)
 
         # Se juntan el resto de folds para formar el dataset de entrenamiento, no PU:
         indices_folds_entrenamiento = [i for i in range(1, num_folds + 1) if i != fold_num]
-        X_train, y_train = juntar_folds_separados(ruta_folds, indices_folds_entrenamiento)    
+        X_train, y_train = juntar_folds_separados(ruta_folds, indices_folds_entrenamiento, guardado_npy)    
 
         # Se elige el modelo para el benchmark:
         modelo_benchmark = elegir_metodo_aprendizaje(
@@ -156,7 +156,7 @@ def entr_y_eval_no_pu(ruta_folds, num_folds, cl_positivas, metricas, nombre):
 
 
 # Función de Entrenamiento y Evaluación PU sin Two-Step methods:
-def entr_y_eval_pu_sin_ts(ruta_folds, ruta_folds_pu, num_folds, cl_positivas, metricas, nombre):
+def entr_y_eval_pu_sin_ts(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl_positivas, metricas, nombre):
     print("\nEntrenamiento y Evaluacion PU sin Two-Step methods:\n")
 
     # Iniciamos CodeCarbon:
@@ -172,11 +172,11 @@ def entr_y_eval_pu_sin_ts(ruta_folds, ruta_folds_pu, num_folds, cl_positivas, me
         print(f"\nFold {fold_num}...")
 
         # Carga del dataset de test (solo uno de los folds, no PU):
-        X_test, y_test = cargar_fold(ruta_folds / f"fold_{fold_num}.csv")
+        X_test, y_test = cargar_fold(ruta_folds, fold_num, guardado_npy)
 
         # Se juntan el resto de folds para formar el dataset de entrenamiento, en este caso PU:
         indices_folds_entrenamiento = [i for i in range(1, num_folds + 1) if i != fold_num]
-        X_train_pu, y_train_pu = juntar_folds_separados(ruta_folds_pu, indices_folds_entrenamiento)
+        X_train_pu, y_train_pu = juntar_folds_separados(ruta_folds_pu, indices_folds_entrenamiento, guardado_npy)
 
         # Se elige el modelo para el baseline:
         modelo_baseline = elegir_metodo_aprendizaje(
@@ -228,7 +228,7 @@ def entr_y_eval_pu_sin_ts(ruta_folds, ruta_folds_pu, num_folds, cl_positivas, me
 
 
 # Función de Entrenamiento y Evaluación PU con Two-Step methods:
-def entr_y_eval_pu_con_ts(ruta_folds, ruta_folds_pu, num_folds, cl_positivas, metricas, nombre):
+def entr_y_eval_pu_con_ts(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl_positivas, metricas, nombre):
     print("\nEntrenamiento y Evaluacion PU con Two-Step methods:\n")
 
     # Iniciamos CodeCarbon:
@@ -244,11 +244,11 @@ def entr_y_eval_pu_con_ts(ruta_folds, ruta_folds_pu, num_folds, cl_positivas, me
         print(f"\nFold {fold_num}:")
 
         # Carga del dataset de test (solo uno de los folds, no PU):
-        X_test, y_test = cargar_fold(ruta_folds / f"fold_{fold_num}.csv")
+        X_test, y_test = cargar_fold(ruta_folds, fold_num, guardado_npy)
 
         # Se juntan el resto de folds para formar el dataset de entrenamiento, PU:
         indices_folds_entrenamiento = [i for i in range(1, num_folds + 1) if i != fold_num]
-        X_train_pu, y_train_pu = juntar_folds_separados(ruta_folds_pu, indices_folds_entrenamiento)
+        X_train_pu, y_train_pu = juntar_folds_separados(ruta_folds_pu, indices_folds_entrenamiento, guardado_npy)
 
         # Búsqueda de Negativos Fiables:
         match MET_NEG_FIABLES:
@@ -311,7 +311,7 @@ def entr_y_eval_pu_con_ts(ruta_folds, ruta_folds_pu, num_folds, cl_positivas, me
 
 # Función principal, utilizada para el resto de datasets. Compara entrenamiento
 # y evaluación no PU, PU sin Two-Step methods y PU con Two-Step methods:
-def entrenamiento_y_eval(ruta_folds, ruta_folds_pu, num_folds, cl_positivas, porcentaje_pos, nombre, ruta_txt):
+def entrenamiento_y_eval(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl_positivas, porcentaje_pos, nombre, ruta_txt):
     # Se crean arrays para más tarde guardar los resultados:
     metricas_no_pu = []
     metricas_pu_sin_ts = []
@@ -332,6 +332,7 @@ def entrenamiento_y_eval(ruta_folds, ruta_folds_pu, num_folds, cl_positivas, por
     # Entrenamiento y evaluación no PU:
     metricas_no_pu = entr_y_eval_no_pu(
         ruta_folds,
+        guardado_npy,
         num_folds,
         cl_positivas,
         metricas_no_pu,
@@ -342,6 +343,7 @@ def entrenamiento_y_eval(ruta_folds, ruta_folds_pu, num_folds, cl_positivas, por
     metricas_pu_sin_ts = entr_y_eval_pu_sin_ts(
         ruta_folds,
         ruta_folds_pu,
+        guardado_npy,
         num_folds,
         cl_positivas,
         metricas_pu_sin_ts,
@@ -352,6 +354,7 @@ def entrenamiento_y_eval(ruta_folds, ruta_folds_pu, num_folds, cl_positivas, por
     metricas_pu_con_ts = entr_y_eval_pu_con_ts(
         ruta_folds,
         ruta_folds_pu,
+        guardado_npy,
         num_folds,
         cl_positivas,
         metricas_pu_con_ts,
