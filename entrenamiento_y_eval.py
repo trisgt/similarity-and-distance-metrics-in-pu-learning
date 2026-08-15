@@ -20,12 +20,12 @@ from xgboost import XGBClassifier
 def elegir_metodo_aprendizaje(
         metodo,
         penalty = "l2",
-        c = 10,
-        n_estimators = 10,
+        c = 1.0,
+        n_estimators = 100,
         criterion = "gini",
-        max_depth = 100,
-        hidden_layer_sizes = (10, 10),
-        activation = "tanh",
+        max_depth = None,
+        hidden_layer_sizes = (100, ),
+        activation = "relu",
         semilla = None):
     
     # Se elige el método

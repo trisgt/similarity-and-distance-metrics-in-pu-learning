@@ -12,7 +12,7 @@ def informacion_evaluacion(
         path_guardado = "modelo.txt"):
     
     # Información para el usuario:
-    print(f"\nEvaluacion del modelo: \"{nombre}\"")
+    print(f"\nEvaluacion de \"{nombre}\"")
     print(f"\tClases Positivas (PU): {clases_positivas}")
     print(f"\tPorcentaje de Positivos (PU): {porc_positivos}")
     print(f"\tMetrica Utilizada (PU): {metrica}")
@@ -24,7 +24,7 @@ def informacion_evaluacion(
         f = open(path_guardado, "a")
 
         # Información para el usuario:
-        f.write(f"Evaluacion del modelo: \"{nombre}\"")
+        f.write(f"Evaluacion de \"{nombre}\"")
         f.write(f"\n\tClases Positivas (PU): {clases_positivas}")
         f.write(f"\n\tPorcentaje de Positivos (PU): {porc_positivos}")
         f.write(f"\n\tMetrica Utilizada (PU): {metrica}")
@@ -36,7 +36,7 @@ def informacion_evaluacion(
 
 # Función para evaluar los resultados de un modelo tras entrenamiento, con F1-Score y PR-AUC:
 def evaluacion_dataset(y_true, y_pred, y_score):
-    # Para PR-ROC, calculamos los valores de precision y recall a partir de la curva:
+    # Para PR-AUC, calculamos los valores de precision y recall a partir de la curva:
     vals_precision, vals_recall, _ = precision_recall_curve(y_true, y_score)
 
     metricas = {
