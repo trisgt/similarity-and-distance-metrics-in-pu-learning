@@ -68,7 +68,8 @@ def guardar_dataset_pu(X, y, y_gt, carpeta_salida, guardado_npy, nombre):
     # Primero, creamos la carpeta si aún no existiese:
     os.makedirs(carpeta_salida, exist_ok = True)
 
-    # Si la opción está activada, guardamos los archivos como ".npy":
+    # Si la opción está activada, guardamos los archivos como ".npy".
+    # En datasets de imágenes, se deben guardar como ".npy" y no como ".csv":
     if guardado_npy:
         np.save(os.path.join(carpeta_salida, f"{nombre}_X.npy"), X)
         np.save(os.path.join(carpeta_salida, f"{nombre}_y.npy"), y)

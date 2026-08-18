@@ -7,6 +7,17 @@ from sklearn.model_selection import StratifiedKFold
 from preprocesado.pu_engineering import convertir_a_pu, guardar_dataset_pu
 
 
+# Función auxiliar para obtener los índices de "X" e "y" dados por un fold.
+# Compatible tanto con datasets tabulares como de imágenes:
+def seleccionar_indices(datos, indices):
+    # Se comprueba si los datos tienen el atributo "iloc" (tabular). Si lo tienen, se utiliza:
+    if hasattr(datos, "iloc"):
+        return datos.iloc[indices]
+
+    # En otro caso, se devuelven sin "iloc":
+    return datos[indices]
+
+
 # Función para separar un dataset en K-folds:
 def separar_dataset_en_k(X, y, k, ruta_guardado, guardado_npy, semilla = None):
     # Se divide el set en K-folds estratificados, con lo que se mantiene
@@ -27,8 +38,8 @@ def separar_dataset_en_k(X, y, k, ruta_guardado, guardado_npy, semilla = None):
         fold_idx = idx[1]
 
         # Se obtienen los índices de "X" e "y" dados por el fold:
-        X_fold = X.iloc[fold_idx]
-        y_fold = y.iloc[fold_idx]
+        X_fold = seleccionar_indices(X, fold_idx)
+        y_fold = seleccionar_indices(y, fold_idx)
 
         # Guardamos el fold en ".npy" o en ".csv", dependiendo de la opción indicada:
         guardar_fold(X_fold, y_fold, ruta_guardado, fold_num, guardado_npy)
