@@ -7,7 +7,7 @@ from config.train_config import *
 
 from preprocesado.kfold import cargar_fold, juntar_folds_separados
 from two_step_techniques.negativos_fiables import rocchio, knn, kmeans, kmedoids, crne
-from two_step_techniques.aprendizaje import logistic_regression, random_forest, xgboost_lrn, mlp
+from two_step_techniques.aprendizaje import logistic_regression, random_forest, xgboost_lrn, mlp, cnn
 from evaluacion.evaluacion import informacion_evaluacion, evaluacion_dataset
 
 from sklearn.linear_model import LogisticRegression
@@ -16,7 +16,7 @@ from sklearn.neural_network import MLPClassifier
 from xgboost import XGBClassifier
 
 
-# Función auxiliar para la elección de un modelo de aprendizaje (sin Two-Step):
+# Función auxiliar para la elección de un modelo de aprendizaje (sin Two-Step). No se encarga de CNN:
 def elegir_metodo_aprendizaje(
         metodo,
         penalty = "l2",
@@ -38,8 +38,6 @@ def elegir_metodo_aprendizaje(
             modelo = XGBClassifier(random_state = semilla)
         case "MLP":
             modelo = MLPClassifier(hidden_layer_sizes = hidden_layer_sizes, activation = activation, max_iter = 1000, random_state = semilla)
-        case "CNN":
-            raise ValueError("CNN aun no implementado")
         case _:
             raise ValueError(f"Modelo de aprendizaje no valido: \"{metodo}\"")
     
@@ -59,6 +57,15 @@ def calcular_pesos(y_train):
 
     return pesos
 
+# Funciíon auxiliar para preparar los datos adecuadamente según el modelo de aprendizaje:
+def preparar_X(X, modelo):
+    X = np.asarray(X)
+
+    # Para los modelos clásicos (no CNN), se necesita una matriz 2D:
+    if modelo != "CNN" and X.ndim > 2:
+        X = X.reshape(X.shape[0], -1)
+
+    return X
 
 # Función auxiliar para escribir en el archivo de resultados:
 def escribir_resultados(metricas, ruta_guardado, nombre):
@@ -105,37 +112,54 @@ def entr_y_eval_no_pu(ruta_folds, guardado_npy, num_folds, cl_positivas, metrica
 
         # Se juntan el resto de folds para formar el dataset de entrenamiento, no PU:
         indices_folds_entrenamiento = [i for i in range(1, num_folds + 1) if i != fold_num]
-        X_train, y_train = juntar_folds_separados(ruta_folds, indices_folds_entrenamiento, guardado_npy)    
-
-        # Se elige el modelo no PU:
-        modelo_no_pu = elegir_metodo_aprendizaje(
-            MET_APRENDIZAJE,
-            PENALTY,
-            C,
-            N_ESTIMATORS,
-            CRITERION,
-            MAX_DEPTH,
-            HIDDEN_LAYER_SIZES,
-            ACTIVATION,
-            SEMILLA_L
-        )
+        X_train, y_train = juntar_folds_separados(ruta_folds, indices_folds_entrenamiento, guardado_npy)
 
         # Se convierten las etiquetas multiclase a binarias:
         y_train = np.isin(y_train, cl_positivas).astype(int)
         y_test = np.isin(y_test, cl_positivas).astype(int)
 
-        # Si la opción está activada, balanceamos los clases. Si no, entrenamos sin balancear:
-        if BALANCEO_CLASES:
-            pesos = calcular_pesos(y_train) # Calculamos los pesos de cada clase
-            modelo_no_pu.fit(X_train, y_train, sample_weight = pesos)
-        else:
-            modelo_no_pu.fit(X_train, y_train)
+        # Se preparan los datos para el modelo de aprendizaje:
+        X_train = preparar_X(X_train, MET_APRENDIZAJE)
+        X_test = preparar_X(X_test, MET_APRENDIZAJE)
 
-        # El modelo entrenado se utiliza para predecir las clases del conjunto de test:
-        y_pred_no_pu = modelo_no_pu.predict(X_test)
+        # Se elige el modelo no PU:
+        if MET_APRENDIZAJE == "CNN":
+            # Con CNN, el entrenamiento se hace directamente:
+            modelo_no_pu = cnn(
+                X_train,
+                y_train,
+                None,
+                SEMILLA_L,
+                BALANCEO_CLASES,
+                True)
+        else:
+            modelo_no_pu = elegir_metodo_aprendizaje(
+                MET_APRENDIZAJE,
+                PENALTY,
+                C,
+                N_ESTIMATORS,
+                CRITERION,
+                MAX_DEPTH,
+                HIDDEN_LAYER_SIZES,
+                ACTIVATION,
+                SEMILLA_L
+            )
+
+            # Si la opción está activada, balanceamos los clases. Si no, entrenamos sin balancear:
+            if BALANCEO_CLASES:
+                pesos = calcular_pesos(y_train) # Calculamos los pesos de cada clase
+                modelo_no_pu.fit(X_train, y_train, sample_weight = pesos)
+            else:
+                modelo_no_pu.fit(X_train, y_train)
 
         # Obtenemos también las probabilidades que el modelo asigna a la clase positiva:
-        y_score_no_pu = modelo_no_pu.predict_proba(X_test)[:, 1]
+        if MET_APRENDIZAJE == "CNN":
+            y_score_no_pu = modelo_no_pu.predict(X_test).flatten()
+            y_pred_no_pu = (y_score_no_pu >= 0.5).astype(int)
+        else:
+            # El modelo entrenado se utiliza para predecir las clases del conjunto de test:
+            y_pred_no_pu = modelo_no_pu.predict(X_test)
+            y_score_no_pu = modelo_no_pu.predict_proba(X_test)[:, 1]
 
         # Se evalúa el modelo:
         resultados_no_pu = evaluacion_dataset(
@@ -182,31 +206,48 @@ def entr_y_eval_pu_sin_ts(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl
         indices_folds_entrenamiento = [i for i in range(1, num_folds + 1) if i != fold_num]
         X_train_pu, y_train_pu = juntar_folds_separados(ruta_folds_pu, indices_folds_entrenamiento, guardado_npy)
 
-        # Se elige el modelo PU sin Two-Step methods:
-        modelo_pu_sin_ts = elegir_metodo_aprendizaje(
-            MET_APRENDIZAJE,
-            PENALTY,
-            C,
-            N_ESTIMATORS,
-            CRITERION,
-            MAX_DEPTH,
-            HIDDEN_LAYER_SIZES,
-            ACTIVATION,
-            SEMILLA_L
-        )
+        # Se preparan los datos para el modelo de aprendizaje:
+        X_train_pu = preparar_X(X_train_pu, MET_APRENDIZAJE)
+        X_test = preparar_X(X_test, MET_APRENDIZAJE)
 
-        # Si la opción está activada, balanceamos los clases. Si no, entrenamos sin balancear:
-        if BALANCEO_CLASES:
-            pesos = calcular_pesos(y_train_pu) # Calculamos los pesos de cada clase
-            modelo_pu_sin_ts.fit(X_train_pu, y_train_pu, sample_weight = pesos)
+        # Se elige el modelo PU sin Two-Step methods:
+        if MET_APRENDIZAJE == "CNN":
+            # Con CNN, el entrenamiento se hace directamente:
+            modelo_pu_sin_ts = cnn(
+                X_train_pu,
+                y_train_pu,
+                None,
+                SEMILLA_L,
+                BALANCEO_CLASES,
+                True)
         else:
-            modelo_pu_sin_ts.fit(X_train_pu, y_train_pu)
-    
-        # El modelo entrenado se utiliza para predecir las clases del conjunto de test:
-        y_pred_pu_sin_ts = modelo_pu_sin_ts.predict(X_test)
+            modelo_pu_sin_ts = elegir_metodo_aprendizaje(
+                MET_APRENDIZAJE,
+                PENALTY,
+                C,
+                N_ESTIMATORS,
+                CRITERION,
+                MAX_DEPTH,
+                HIDDEN_LAYER_SIZES,
+                ACTIVATION,
+                SEMILLA_L
+            )
+
+            # Si la opción está activada, balanceamos los clases. Si no, entrenamos sin balancear:
+            if BALANCEO_CLASES:
+                pesos = calcular_pesos(y_train_pu) # Calculamos los pesos de cada clase
+                modelo_pu_sin_ts.fit(X_train_pu, y_train_pu, sample_weight = pesos)
+            else:
+                modelo_pu_sin_ts.fit(X_train_pu, y_train_pu)
 
         # Obtenemos también las probabilidades que el modelo asigna a la clase positiva:
-        y_score_pu_sin_ts = modelo_pu_sin_ts.predict_proba(X_test)[:, 1]
+        if MET_APRENDIZAJE == "CNN":
+            y_score_pu_sin_ts = modelo_pu_sin_ts.predict(X_test).flatten()
+            y_pred_pu_sin_ts = (y_score_pu_sin_ts >= 0.5).astype(int)
+        else:
+            # El modelo entrenado se utiliza para predecir las clases del conjunto de test:
+            y_pred_pu_sin_ts = modelo_pu_sin_ts.predict(X_test)
+            y_score_pu_sin_ts = modelo_pu_sin_ts.predict_proba(X_test)[:, 1]
 
         # Se evalúa el modelo:
         y_true_pu = np.isin(y_test, cl_positivas).astype(int)
@@ -254,41 +295,51 @@ def entr_y_eval_pu_con_ts(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl
         indices_folds_entrenamiento = [i for i in range(1, num_folds + 1) if i != fold_num]
         X_train_pu, y_train_pu = juntar_folds_separados(ruta_folds_pu, indices_folds_entrenamiento, guardado_npy)
 
+        # Se crea una versión plana de X_train_pu, para poder obtener negativos fiables con datos de imágenes:
+        X_train_pu_flat = X_train_pu.reshape(X_train_pu.shape[0], -1)
+
         # Búsqueda de Negativos Fiables:
         match MET_NEG_FIABLES:
             case "Rocchio":
-                RN = rocchio(X_train_pu, y_train_pu, METRICA)
+                indices_RN = rocchio(X_train_pu_flat, y_train_pu, METRICA)
             case "KNN":
-                RN = knn(X_train_pu, y_train_pu, METRICA, K, PORCENTAJE_RN)
+                indices_RN = knn(X_train_pu_flat, y_train_pu, METRICA, K, PORCENTAJE_RN)
             case "KMeans":
-                RN = kmeans(X_train_pu, y_train_pu, METRICA, K, PORCENTAJE_RN, SEMILLA_RN)
+                indices_RN = kmeans(X_train_pu_flat, y_train_pu, METRICA, K, PORCENTAJE_RN, SEMILLA_RN)
             case "KMedoids":
-                RN = kmedoids(X_train_pu, y_train_pu, METRICA, K, PORCENTAJE_RN, SEMILLA_RN)
+                indices_RN = kmedoids(X_train_pu_flat, y_train_pu, METRICA, K, PORCENTAJE_RN, SEMILLA_RN)
             case "CRNE":
-                RN = crne(X_train_pu, y_train_pu, METRICA, K, SEMILLA_RN)
+                indices_RN = crne(X_train_pu_flat, y_train_pu, METRICA, K, SEMILLA_RN)
             case _:
                 raise ValueError(f"Modelo de Negativos Fiables no valido: \"{MET_NEG_FIABLES}\"")
+
+        # Se preparan los datos para el modelo de aprendizaje:
+        X_train_pu = preparar_X(X_train_pu, MET_APRENDIZAJE)
+        X_test = preparar_X(X_test, MET_APRENDIZAJE)
         
         # Aprendizaje con Positivos y Negativos Fiables:
         match MET_APRENDIZAJE:
             case "Logistic Regression":
-                modelo = logistic_regression(X_train_pu, y_train_pu, RN, PENALTY, C, SEMILLA_L, BALANCEO_CLASES)
+                modelo = logistic_regression(X_train_pu, y_train_pu, indices_RN, PENALTY, C, SEMILLA_L, BALANCEO_CLASES)
             case "Random Forest":
-                modelo = random_forest(X_train_pu, y_train_pu, RN, N_ESTIMATORS, CRITERION, MAX_DEPTH, SEMILLA_L, BALANCEO_CLASES)
+                modelo = random_forest(X_train_pu, y_train_pu, indices_RN, N_ESTIMATORS, CRITERION, MAX_DEPTH, SEMILLA_L, BALANCEO_CLASES)
             case "XGBoost":
-                modelo = xgboost_lrn(X_train_pu, y_train_pu, RN, SEMILLA_L, BALANCEO_CLASES)
+                modelo = xgboost_lrn(X_train_pu, y_train_pu, indices_RN, SEMILLA_L, BALANCEO_CLASES)
             case "MLP":
-                modelo = mlp(X_train_pu, y_train_pu, RN, HIDDEN_LAYER_SIZES, ACTIVATION, SEMILLA_L, BALANCEO_CLASES)
+                modelo = mlp(X_train_pu, y_train_pu, indices_RN, HIDDEN_LAYER_SIZES, ACTIVATION, SEMILLA_L, BALANCEO_CLASES)
             case "CNN":
-                raise ValueError("CNN aun no implementado")
+                modelo = cnn(X_train_pu, y_train_pu, indices_RN, SEMILLA_L, BALANCEO_CLASES, False)
             case _:
                 raise ValueError(f"Modelo de aprendizaje no valido: \"{MET_APRENDIZAJE}\"")
-        
-        # El modelo entrenado se utiliza para predecir las clases del conjunto de test:
-        y_pred = modelo.predict(X_test)
 
         # Obtenemos también las probabilidades que el modelo asigna a la clase positiva:
-        y_score = modelo.predict_proba(X_test)[:, 1]
+        if MET_APRENDIZAJE == "CNN":
+            y_score = modelo.predict(X_test).flatten()
+            y_pred = (y_score >= 0.5).astype(int)
+        else:
+            # El modelo entrenado se utiliza para predecir las clases del conjunto de test:
+            y_pred = modelo.predict(X_test)
+            y_score = modelo.predict_proba(X_test)[:, 1]
 
         # Se evalúa el modelo:
         y_true_pu = np.isin(y_test, cl_positivas).astype(int)

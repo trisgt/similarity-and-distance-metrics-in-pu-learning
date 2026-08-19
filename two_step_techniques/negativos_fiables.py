@@ -6,6 +6,16 @@ from sklearn_extra.cluster import KMedoids
 from two_step_techniques.metricas_distancia import comprobar_nombre_metrica, obtener_metrica, obtener_vi
 
 
+# Función auxiliar para preparar los datos:
+def preparar_datos(X):
+    # En caso de que sean datos tabulares:
+    if X.ndim == 2:
+        return X
+
+    # En otro caso:
+    return X.reshape(X.shape[0], -1)
+
+
 # Método de Rocchio. En cada método se utiliza un dataset ya convertido en PU (engineered):
 def rocchio(X, y, nombre_metrica):
     # Transformamos "X" e "y" en arrays de numpy para una mayor eficiencia:
@@ -15,9 +25,15 @@ def rocchio(X, y, nombre_metrica):
     # Comprobamos que la métrica sea válida:
     metrica = comprobar_nombre_metrica(nombre_metrica)
 
+    # Aplanamos X (si fuese necesario) para poder calcular distancias correctamente:
+    X_flat = preparar_datos(X)
+
+    # Índices originales de las muestras no etiquetadas:
+    indices_U = np.where(y == 0)[0]
+
     # Separamos las muestras Positivas y las No Etiquetadas:
-    P = X[y == 1]
-    U = X[y == 0]
+    P = X_flat[y == 1]
+    U = X_flat[y == 0]
 
     # Cada clase se representa mediante un prototpio de Rocchio (centroide medio).
     # Se calculan el de los Positivos y el de los No Etiquetados:
@@ -26,24 +42,24 @@ def rocchio(X, y, nombre_metrica):
 
     # Calculamos las distancias de todos los No Etiquetados a ambos prototipos:
     if metrica == "mahalanobis": # Para Mahalanobis se necesita VI
-        VI = obtener_vi(X)
+        VI = obtener_vi(X_flat)
         dist_prot_p = pairwise_distances(U, prototipo_p, metrica, VI = VI).flatten()
         dist_prot_u = pairwise_distances(U, prototipo_u, metrica, VI = VI).flatten()
     else:
         dist_prot_p = pairwise_distances(U, prototipo_p, metrica).flatten()
         dist_prot_u = pairwise_distances(U, prototipo_u, metrica).flatten()
 
-    # Escojemos los negativos fiables: estos serán los que estén más cerca del prototipo de
-    # No Etiquetados que del prototipo de Positivos. Se comprueba para cada muestra:
-    RN = U[dist_prot_u < dist_prot_p]
+    # Obtenemos los índices de los negativos fiables: estos serán los que estén más cerca del
+    # prototipo de No Etiquetados que del prototipo de Positivos. Se comprueba para cada muestra:
+    indices_RN = indices_U[dist_prot_u < dist_prot_p]
 
     print("\nIdentificacion de Negativos Fiables con Rocchio completada:")
     print(f"\tMetrica: {nombre_metrica}")
     print(f"\tPositivos: {len(P)}")
     print(f"\tNo Etiquetados: {len(U)}")
-    print(f"\tNegativos Fiables: {len(RN)}")
+    print(f"\tNegativos Fiables: {len(indices_RN)}")
 
-    return RN
+    return indices_RN
 
 
 # KNN (K-Nearest Neighbours):
@@ -55,9 +71,15 @@ def knn(X, y, nombre_metrica, k, porcentaje_rn):
     # Comprobamos que la métrica sea válida:
     metrica = comprobar_nombre_metrica(nombre_metrica)
 
+    # Aplanamos X (si fuese necesario) para poder calcular distancias correctamente:
+    X_flat = preparar_datos(X)
+
+    # Índices originales de las muestras no etiquetadas:
+    indices_U = np.where(y == 0)[0]
+
     # Separamos las muestras Positivas y las No Etiquetadas:
-    P = X[y == 1]
-    U = X[y == 0]
+    P = X_flat[y == 1]
+    U = X_flat[y == 0]
 
     # Creamos un modelo de KNN:
     if metrica == "mahalanobis":
@@ -77,15 +99,15 @@ def knn(X, y, nombre_metrica, k, porcentaje_rn):
     # Se deciden cuáles son los No Etiquetados más alejados de los positivos (Neg. fiables).
     # Se utiliza el porcentaje de negativos fiables para separarlos:
     threshold = np.quantile(dist_medias, 1 - porcentaje_rn)
-    RN = U[dist_medias >= threshold]
+    indices_RN = indices_U[dist_medias >= threshold]
 
     print("\nIdentificacion de Negativos Fiables con KNN completada:")
     print(f"\tMetrica: {nombre_metrica}; k = {k}; porcentaje RN: {porcentaje_rn}")
     print(f"\tPositivos: {len(P)}")
     print(f"\tNo Etiquetados: {len(U)}")
-    print(f"\tNegativos Fiables: {len(RN)}")
+    print(f"\tNegativos Fiables: {len(indices_RN)}")
 
-    return RN
+    return indices_RN
 
 
 # K-Means:
@@ -98,9 +120,15 @@ def kmeans(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
     metrica = comprobar_nombre_metrica(nombre_metrica)
     metrica_sc = obtener_metrica(metrica)
 
+    # Aplanamos X (si fuese necesario) para poder calcular distancias correctamente:
+    X_flat = preparar_datos(X)
+
+    # Índices originales de las muestras no etiquetadas:
+    indices_U = np.where(y == 0)[0]
+
     # Separamos las muestras Positivas y las No Etiquetadas:
-    P = X[y == 1]
-    U = X[y == 0]
+    P = X_flat[y == 1]
+    U = X_flat[y == 0]
 
     # Creamos un modelo de K-Means. Con "fit_predict" se ejecuta el algoritmo de K-Means
     # sobre los No Etiquetados, obteniendo k clusters que ya han convergido:
@@ -134,9 +162,9 @@ def kmeans(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
     clusters_neg = dist_centroides_ord[:num_clusters_neg]
 
     # Seleccionamos las muestras individuales candidatas dentro de estos clusters:
-    candidatos = U[np.isin(clusters_u, clusters_neg)]
-
-    # Si no hay candidatos, devolver vacio...?
+    mask_candidatos = np.isin(clusters_u, clusters_neg)
+    candidatos = U[mask_candidatos]
+    indices_candidatos = indices_U[mask_candidatos]
 
     # Se calculan las distancias de los candidatos al prototipo positivo:
     dist_candidatos = []
@@ -153,15 +181,15 @@ def kmeans(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
 
     # Seleccionamos un porcentaje de los candidatos como negativos fiables:
     num_rn = int(len(U) * porcentaje_rn)
-    RN = candidatos[dist_candidatos_ord[:num_rn]]
+    indices_RN = indices_candidatos[dist_candidatos_ord[:num_rn]]
 
     print("\nIdentificacion de Negativos Fiables con K-Means completada:")
     print(f"\tMetrica: {nombre_metrica}; k = {k}; porcentaje RN: {porcentaje_rn}; semilla = {semilla}")
     print(f"\tPositivos: {len(P)}")
     print(f"\tNo Etiquetados: {len(U)}")
-    print(f"\tNegativos Fiables: {len(RN)}")
+    print(f"\tNegativos Fiables: {len(indices_RN)}")
 
-    return RN
+    return indices_RN
 
 
 # K-Medoids:
@@ -174,9 +202,15 @@ def kmedoids(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
     metrica = comprobar_nombre_metrica(nombre_metrica)
     metrica_sc = obtener_metrica(metrica)
 
+    # Aplanamos X (si fuese necesario) para poder calcular distancias correctamente:
+    X_flat = preparar_datos(X)
+
+    # Índices originales de las muestras no etiquetadas:
+    indices_U = np.where(y == 0)[0]
+
     # Separamos las muestras Positivas y las No Etiquetadas:
-    P = X[y == 1]
-    U = X[y == 0]
+    P = X_flat[y == 1]
+    U = X_flat[y == 0]
 
     # Creamos un modelo de K-Medoids. Con "fit_predict" se ejecuta el algoritmo de K-Medoids
     # sobre los No Etiquetados, obteniendo k clusters que ya han convergido:
@@ -212,9 +246,9 @@ def kmedoids(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
     clusters_neg = dist_medoides_ord[:num_clusters_neg]
 
     # Seleccionamos las muestras individuales candidatas dentro de estos clusters:
-    candidatos = U[np.isin(clusters_u, clusters_neg)]
-
-    # Si no hay candidatos, devolver vacio...?
+    mask_candidatos = np.isin(clusters_u, clusters_neg)
+    candidatos = U[mask_candidatos]
+    indices_candidatos = indices_U[mask_candidatos]
 
     # Se calculan las distancias de los candidatos al prototipo positivo:
     dist_candidatos = []
@@ -231,15 +265,15 @@ def kmedoids(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
 
     # Seleccionamos un porcentaje de los candidatos como negativos fiables:
     num_rn = int(len(U) * porcentaje_rn)
-    RN = candidatos[dist_candidatos_ord[:num_rn]]
+    indices_RN = indices_candidatos[dist_candidatos_ord[:num_rn]]
 
     print("\nIdentificacion de Negativos Fiables con K-Medoids completada:")
     print(f"\tMetrica: {nombre_metrica}; k = {k}; porcentaje RN: {porcentaje_rn}; semilla = {semilla}")
     print(f"\tPositivos: {len(P)}")
     print(f"\tNo Etiquetados: {len(U)}")
-    print(f"\tNegativos Fiables: {len(RN)}")
+    print(f"\tNegativos Fiables: {len(indices_RN)}")
 
-    return RN
+    return indices_RN
 
 
 # CRNE:
@@ -252,9 +286,12 @@ def crne(X, y, nombre_metrica, k, semilla = 1):
     metrica = comprobar_nombre_metrica(nombre_metrica)
     metrica_sc = obtener_metrica(metrica)
 
+    # Aplanamos X (si fuese necesario) para poder calcular distancias correctamente:
+    X_flat = preparar_datos(X)
+
     # Hacemos clustering con K-Means, y utilizamos "fit_predict" en todo el conjunto:
     kmeans_model = KMeans(n_clusters = k, random_state = semilla)
-    clusters = kmeans_model.fit_predict(X)
+    clusters = kmeans_model.fit_predict(X_flat)
 
     # Detectamos los positivos en y:
     p_mask = (y == 1)
@@ -269,12 +306,12 @@ def crne(X, y, nombre_metrica, k, semilla = 1):
             clusters_rn.append(c)
     
     # Extraemos los RN de cada cluster:
-    RN = X[np.isin(clusters, clusters_rn)]
+    indices_RN = np.where(np.isin(clusters, clusters_rn))[0]
 
     print("\nIdentificacion de Negativos Fiables con CRNE completada:")
     print(f"\tMetrica: {nombre_metrica}; k = {k}; semilla = {semilla}")
     print(f"\tPositivos: {len(X[y == 1])}")
     print(f"\tNo Etiquetados: {len(X[y == 0])}")
-    print(f"\tNegativos Fiables: {len(RN)}")
+    print(f"\tNegativos Fiables: {len(indices_RN)}")
 
-    return RN
+    return indices_RN
