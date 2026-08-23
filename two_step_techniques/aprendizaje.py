@@ -3,54 +3,39 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from xgboost import XGBClassifier
-from tensorflow.keras import Sequential
+from tensorflow.keras import Sequential, Input
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
 
-# Función auxiliar para preparar los datos:
-def preparar_datos(X):
-    # En caso de que sean datos tabulares:
-    if X.ndim == 2:
-        return X
+from two_step_techniques.negativos_fiables import preparado_datos
 
-    # En otro caso:
-    return X.reshape(X.shape[0], -1)
 
 # Función auxiliar para construír el set de datos con el que se entrenará al modelo.
 # Este se construye únicamente con los datos positivos (P) y los negativos fiables (RN):
 def construir_dataset_entrenamiento(X, y, indices_RN, balanceo_clases = False):
-    # Transformamos "X" e "y" en arrays de numpy para una mayor eficiencia:
-    X = np.asarray(X, dtype = np.float64)
-    y = np.asarray(y)
-
-    # Preparamos X para que tenga formato (muestras, caracteristicas):
-    X = preparar_datos(X)
-
     # Definimos el conjunto de positivos:
     P = X[y == 1]
 
-    # Obtenemos los negativos fiables correspondientes a los indices:
+    # Obtenemos los Negativos Fiables correspondientes a los índices dados:
     RN = X[indices_RN]
 
-    # Juntamos los positivos en las columnas izquierdas y los RN en las derechas:
+    # Creamos un nuevo conjunto de datos, juntando los positivos con los Negativos Fiables:
     X_train = np.vstack([P, RN])
     y_train = np.hstack([np.ones(len(P)), np.zeros(len(RN))])
 
-    # Mezclamos el nuevo dataset para evitar sesgo:
+    # Mezclamos este nuevo dataset para evitar sesgo:
     indices = np.arange(len(y_train))
     np.random.shuffle(indices)
     X_train = X_train[indices]
     y_train = y_train[indices]
 
-    # Por defecto, no habrá pesos por clase:
-    pesos = None
-
     # Si la opción está activada, calculamos el peso para cada clase:
+    pesos = None
     if balanceo_clases:
-        # Primero calculamos el número de ejemplos de cada clase:
+        # Calculamos el número de ejemplos de cada clase:
         num_pos = np.sum(y_train == 1)
         num_neg = np.sum(y_train == 0)
 
-        # Calculamos los pesos:
+        # Después, calculamos los pesos:
         peso_pos = len(y_train) / (num_pos * 2)
         peso_neg = len(y_train) / (num_neg * 2)
         pesos = np.where(y_train == 1, peso_pos, peso_neg)
@@ -58,9 +43,12 @@ def construir_dataset_entrenamiento(X, y, indices_RN, balanceo_clases = False):
     return X_train, y_train, pesos
 
 
-# Logistic Regression:
+# Regresión Logística (Logistic Regression):
 def logistic_regression(X, y, indices_RN, penalty = "l2", C = 1, semilla = None, balanceo_clases = False):
-    # Creamos el dataset:
+    # Preparamos los datos:
+    X, y = preparado_datos(X, y)
+
+    # Creamos el dataset de entrenamiento:
     X_train, y_train, pesos = construir_dataset_entrenamiento(X, y, indices_RN, balanceo_clases)
 
     # Creamos el clasificador y lo entrenamos:
@@ -72,13 +60,16 @@ def logistic_regression(X, y, indices_RN, penalty = "l2", C = 1, semilla = None,
     )
     modelo.fit(X_train, y_train, sample_weight = pesos)
 
-    print("\nAprendizaje con Logistic Regression completado.")
+    print("\nAprendizaje con Regresión Logística completado.")
     return modelo
 
 
 # Random Forest:
 def random_forest(X, y, indices_RN, n_estimators = 10, criterion = "gini", max_depth = 50, semilla = None, balanceo_clases = False):
-    # Creamos el dataset:
+    # Preparamos los datos:
+    X, y = preparado_datos(X, y)
+
+    # Creamos el dataset de entrenamiento:
     X_train, y_train, pesos = construir_dataset_entrenamiento(X, y, indices_RN, balanceo_clases)
 
     # Creamos el clasificador y lo entrenamos:
@@ -94,9 +85,12 @@ def random_forest(X, y, indices_RN, n_estimators = 10, criterion = "gini", max_d
     return modelo
 
 
-# XGBoost:
+# XGBoost (eXtreme Gradient Boosting):
 def xgboost_lrn(X, y, indices_RN, semilla = None, balanceo_clases = False):
-    # Creamos el dataset:
+    # Preparamos los datos:
+    X, y = preparado_datos(X, y)
+
+    # Creamos el dataset de entrenamiento:
     X_train, y_train, pesos = construir_dataset_entrenamiento(X, y, indices_RN, balanceo_clases)
 
     # Creamos el clasificador y lo entrenamos:
@@ -109,7 +103,10 @@ def xgboost_lrn(X, y, indices_RN, semilla = None, balanceo_clases = False):
 
 # Perceptrón Multicapa (MLP):
 def mlp(X, y, indices_RN, hidden_layer_sizes = (10, 10), activation = "tanh", semilla = None, balanceo_clases = False):
-    # Creamos el dataset:
+    # Preparamos los datos:
+    X, y = preparado_datos(X, y)
+
+    # Creamos el dataset de entrenamiento:
     X_train, y_train, pesos = construir_dataset_entrenamiento(X, y, indices_RN, balanceo_clases)
 
     # Creamos el clasificador y lo entrenamos:
@@ -122,41 +119,30 @@ def mlp(X, y, indices_RN, hidden_layer_sizes = (10, 10), activation = "tanh", se
     modelo.fit(X_train, y_train, sample_weight = pesos)
 
     print("\nAprendizaje con Perceptron Multicapa (MLP) completado.")
-    return modelo    
+    return modelo
+
 
 # Red Neuronal Convolucional (CNN):
-def cnn(X, y, indices_RN, semilla = None, balanceo_clases = False, aprendizaje_estandar = False):
-    if not aprendizaje_estandar:
-        # Seguimos los pasos para crear el dataset. Primero, definimos el conjunto de positivos:
-        P = X[y == 1]
-        
-        # Obtenemos los negativos fiables correspondientes a los indices:
-        RN = X[indices_RN]
+def cnn(X, y, indices_RN, optimizer = "adam", loss = "binary_crossentropy", semilla = None, balanceo_clases = False, aprendizaje_sin_pu = False):
+    # "X" e "y" se transforman en arrays de numpy para una mayor eficiencia:
+    X = np.asarray(X, dtype = np.float32)
+    y = np.asarray(y)
 
-        # Juntamos los positivos en las columnas izquierdas y los RN en las derechas:
-        X_train = np.vstack([P, RN])
-        y_train = np.hstack([np.ones(len(P)), np.zeros(len(RN))])
+    # En caso de estar utilizando CNN sin aprendizaje PU:
+    if aprendizaje_sin_pu:
+        X_train = X.copy()
+        y_train = y.copy()
+        pesos = None
+
+    # En caso contrario:
     else:
-        X_train = np.asarray(X, dtype = np.float32)
-        y_train = np.asarray(y)
-
-    # Por defecto, no habrá pesos por clase:
-    pesos = None
-
-    # Si la opción está activada, calculamos el peso para cada clase:
-    if balanceo_clases:
-        # Primero calculamos el número de ejemplos de cada clase:
-        num_pos = np.sum(y_train == 1)
-        num_neg = np.sum(y_train == 0)
-
-        # Calculamos los pesos:
-        peso_pos = len(y_train) / (num_pos * 2)
-        peso_neg = len(y_train) / (num_neg * 2)
-        pesos = np.where(y_train == 1, peso_pos, peso_neg)
+        # Creamos el dataset de entrenamiento. Los datos no se aplanan de antemano:
+        X_train, y_train, pesos = construir_dataset_entrenamiento(X, y, indices_RN, balanceo_clases)
 
     # Creamos el modelo de CNN:
     modelo = Sequential([
-        Conv2D(32, (3, 3), activation = "relu", input_shape = X_train.shape[1:]),
+        Input(shape = X_train.shape[1:]),
+        Conv2D(32, (3, 3), activation = "relu"),
         MaxPooling2D((2, 2)),
         Conv2D(64, (3, 3), activation = "relu"),
         MaxPooling2D((2, 2)),
@@ -165,9 +151,10 @@ def cnn(X, y, indices_RN, semilla = None, balanceo_clases = False, aprendizaje_e
         Dense(1, activation = "sigmoid")
     ])
 
+    # Configuramos el modelo:
     modelo.compile(
-        optimizer = "adam",
-        loss = "binary_crossentropy",
+        optimizer = optimizer,
+        loss = loss,
         metrics = ["accuracy"]
     )
 

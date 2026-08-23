@@ -16,5 +16,7 @@ CRITERION = "gini"      # Con Random Forest
 MAX_DEPTH = None        # Con Random Forest
 HIDDEN_LAYER_SIZES = (100, )    # Con Perceptrón Multicapa
 ACTIVATION = "relu"     # Con Perceptrón Multicapa
+OPTIMIZER = "adam"      # Con Red Neuronal Convolucional
+LOSS = "binary_crossentropy"    # Con Red Neuronal Convolucional
 SEMILLA_L = 1
 BALANCEO_CLASES = True

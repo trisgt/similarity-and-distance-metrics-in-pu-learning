@@ -57,11 +57,13 @@ def calcular_pesos(y_train):
 
     return pesos
 
-# Funciíon auxiliar para preparar los datos adecuadamente según el modelo de aprendizaje:
-def preparar_X(X, modelo):
-    X = np.asarray(X)
+# Función auxiliar para el preparado de datos. Transforma "X" a array de numpy
+# y la aplana (si fuese necesario) para poder calcular distancias correctamente:
+def preparado_X(X, modelo):
+    # "X" se transforma en array de numpy para una mayor eficiencia:
+    X = np.asarray(X, dtype = np.float32)
 
-    # Para los modelos clásicos (no CNN), se necesita una matriz 2D:
+    # Si fuese necesario (por ejemplo, con imágenes), la aplanamos:
     if modelo != "CNN" and X.ndim > 2:
         X = X.reshape(X.shape[0], -1)
 
@@ -119,8 +121,8 @@ def entr_y_eval_no_pu(ruta_folds, guardado_npy, num_folds, cl_positivas, metrica
         y_test = np.isin(y_test, cl_positivas).astype(int)
 
         # Se preparan los datos para el modelo de aprendizaje:
-        X_train = preparar_X(X_train, MET_APRENDIZAJE)
-        X_test = preparar_X(X_test, MET_APRENDIZAJE)
+        X_train = preparado_X(X_train, MET_APRENDIZAJE)
+        X_test = preparado_X(X_test, MET_APRENDIZAJE)
 
         # Se elige el modelo no PU:
         if MET_APRENDIZAJE == "CNN":
@@ -129,6 +131,8 @@ def entr_y_eval_no_pu(ruta_folds, guardado_npy, num_folds, cl_positivas, metrica
                 X_train,
                 y_train,
                 None,
+                OPTIMIZER,
+                LOSS,
                 SEMILLA_L,
                 BALANCEO_CLASES,
                 True)
@@ -207,8 +211,8 @@ def entr_y_eval_pu_sin_ts(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl
         X_train_pu, y_train_pu = juntar_folds_separados(ruta_folds_pu, indices_folds_entrenamiento, guardado_npy)
 
         # Se preparan los datos para el modelo de aprendizaje:
-        X_train_pu = preparar_X(X_train_pu, MET_APRENDIZAJE)
-        X_test = preparar_X(X_test, MET_APRENDIZAJE)
+        X_train_pu = preparado_X(X_train_pu, MET_APRENDIZAJE)
+        X_test = preparado_X(X_test, MET_APRENDIZAJE)
 
         # Se elige el modelo PU sin Two-Step methods:
         if MET_APRENDIZAJE == "CNN":
@@ -217,6 +221,8 @@ def entr_y_eval_pu_sin_ts(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl
                 X_train_pu,
                 y_train_pu,
                 None,
+                OPTIMIZER,
+                LOSS,
                 SEMILLA_L,
                 BALANCEO_CLASES,
                 True)
@@ -296,7 +302,7 @@ def entr_y_eval_pu_con_ts(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl
         X_train_pu, y_train_pu = juntar_folds_separados(ruta_folds_pu, indices_folds_entrenamiento, guardado_npy)
 
         # Se crea una versión plana de X_train_pu, para poder obtener negativos fiables con datos de imágenes:
-        X_train_pu_flat = X_train_pu.reshape(X_train_pu.shape[0], -1)
+        X_train_pu_flat = preparado_X(X_train_pu, None)
 
         # Búsqueda de Negativos Fiables:
         match MET_NEG_FIABLES:
@@ -314,8 +320,8 @@ def entr_y_eval_pu_con_ts(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl
                 raise ValueError(f"Modelo de Negativos Fiables no valido: \"{MET_NEG_FIABLES}\"")
 
         # Se preparan los datos para el modelo de aprendizaje:
-        X_train_pu = preparar_X(X_train_pu, MET_APRENDIZAJE)
-        X_test = preparar_X(X_test, MET_APRENDIZAJE)
+        X_train_pu = preparado_X(X_train_pu, MET_APRENDIZAJE)
+        X_test = preparado_X(X_test, MET_APRENDIZAJE)
         
         # Aprendizaje con Positivos y Negativos Fiables:
         match MET_APRENDIZAJE:
@@ -328,7 +334,7 @@ def entr_y_eval_pu_con_ts(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl
             case "MLP":
                 modelo = mlp(X_train_pu, y_train_pu, indices_RN, HIDDEN_LAYER_SIZES, ACTIVATION, SEMILLA_L, BALANCEO_CLASES)
             case "CNN":
-                modelo = cnn(X_train_pu, y_train_pu, indices_RN, SEMILLA_L, BALANCEO_CLASES, False)
+                modelo = cnn(X_train_pu, y_train_pu, indices_RN, OPTIMIZER, LOSS, SEMILLA_L, BALANCEO_CLASES, False)
             case _:
                 raise ValueError(f"Modelo de aprendizaje no valido: \"{MET_APRENDIZAJE}\"")
 

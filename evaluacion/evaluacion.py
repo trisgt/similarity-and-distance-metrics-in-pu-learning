@@ -20,16 +20,15 @@ def informacion_evaluacion(
     print(f"\tMetodo de aprendizaje: {met_aprendizaje}\n")
 
     # Si la opción está marcada, guardamos los resultados en un .txt:
-    if (guardar):
-        f = open(path_guardado, "a")
-
-        # Información para el usuario:
-        f.write(f"Evaluacion de \"{nombre}\"")
-        f.write(f"\n\tClases Positivas (PU): {clases_positivas}")
-        f.write(f"\n\tPorcentaje de Positivos (PU): {porc_positivos}")
-        f.write(f"\n\tMetrica Utilizada (PU): {metrica}")
-        f.write(f"\n\tMetodo de extraccion de Negativos Fiables (PU): {met_neg_fiables}")
-        f.write(f"\n\tMetodo de aprendizaje: {met_aprendizaje}\n\n")
+    if guardar:
+        with open(path_guardado, "a") as f:
+            # Información para el usuario:
+            f.write(f"Evaluacion de \"{nombre}\"")
+            f.write(f"\n\tClases Positivas (PU): {clases_positivas}")
+            f.write(f"\n\tPorcentaje de Positivos (PU): {porc_positivos}")
+            f.write(f"\n\tMetrica Utilizada (PU): {metrica}")
+            f.write(f"\n\tMetodo de extraccion de Negativos Fiables (PU): {met_neg_fiables}")
+            f.write(f"\n\tMetodo de aprendizaje: {met_aprendizaje}\n\n")
 
         print(f"Informacion guardada en \"{path_guardado}\"")
 

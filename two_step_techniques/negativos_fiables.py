@@ -3,58 +3,58 @@ from sklearn.metrics import pairwise_distances
 from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import KMeans
 from sklearn_extra.cluster import KMedoids
+
 from two_step_techniques.metricas_distancia import comprobar_nombre_metrica, obtener_metrica, obtener_vi
 
 
-# Función auxiliar para preparar los datos:
-def preparar_datos(X):
-    # En caso de que sean datos tabulares:
-    if X.ndim == 2:
-        return X
-
-    # En otro caso:
-    return X.reshape(X.shape[0], -1)
-
-
-# Método de Rocchio. En cada método se utiliza un dataset ya convertido en PU (engineered):
-def rocchio(X, y, nombre_metrica):
-    # Transformamos "X" e "y" en arrays de numpy para una mayor eficiencia:
-    X = np.asarray(X, dtype = np.float64)
+# Función auxiliar para el preparado de datos. Transforma "X" e "y" a arrays de numpy
+# y aplana "X" (si fuese necesario) para poder calcular distancias correctamente:
+def preparado_datos(X, y):
+    # "X" e "y" se transforman en arrays de numpy para una mayor eficiencia:
+    X = np.asarray(X, dtype = np.float32)
     y = np.asarray(y)
 
+    # Si fuese necesario (por ejemplo, con imágenes), aplanamos "X":
+    if X.ndim > 2:
+        X = X.reshape(X.shape[0], -1)
+
+    return X, y
+
+
+# Método de Rocchio. En cada método se utiliza un dataset ya convertido a PU ("engineered"):
+def rocchio(X, y, nombre_metrica):
     # Comprobamos que la métrica sea válida:
-    metrica = comprobar_nombre_metrica(nombre_metrica)
+    nombre_metrica = comprobar_nombre_metrica(nombre_metrica)
 
-    # Aplanamos X (si fuese necesario) para poder calcular distancias correctamente:
-    X_flat = preparar_datos(X)
+    # Preparamos los datos:
+    X, y = preparado_datos(X, y)
 
-    # Índices originales de las muestras no etiquetadas:
+    # Obtenemos los índices de las muestras no etiquetadas:
     indices_U = np.where(y == 0)[0]
 
     # Separamos las muestras Positivas y las No Etiquetadas:
-    P = X_flat[y == 1]
-    U = X_flat[y == 0]
+    P = X[y == 1]
+    U = X[y == 0]
 
     # Cada clase se representa mediante un prototpio de Rocchio (centroide medio).
     # Se calculan el de los Positivos y el de los No Etiquetados:
     prototipo_p = np.mean(P, axis = 0).reshape(1, -1)
     prototipo_u = np.mean(U, axis = 0).reshape(1, -1)
 
-    # Calculamos las distancias de todos los No Etiquetados a ambos prototipos:
-    if metrica == "mahalanobis": # Para Mahalanobis se necesita VI
-        VI = obtener_vi(X_flat)
-        dist_prot_p = pairwise_distances(U, prototipo_p, metrica, VI = VI).flatten()
-        dist_prot_u = pairwise_distances(U, prototipo_u, metrica, VI = VI).flatten()
+    # Calculamos las distancias de todos los No Etiquetados a ambos prototpios:
+    if nombre_metrica == "mahalanobis": # Para Mahalanobis se necesita utilizar VI
+        VI = obtener_vi(X)
+        dist_prot_p = pairwise_distances(U, prototipo_p, nombre_metrica, VI = VI).ravel()
+        dist_prot_u = pairwise_distances(U, prototipo_u, nombre_metrica, VI = VI).ravel()
     else:
-        dist_prot_p = pairwise_distances(U, prototipo_p, metrica).flatten()
-        dist_prot_u = pairwise_distances(U, prototipo_u, metrica).flatten()
+        dist_prot_p = pairwise_distances(U, prototipo_p, nombre_metrica).ravel()
+        dist_prot_u = pairwise_distances(U, prototipo_u, nombre_metrica).ravel()
 
-    # Obtenemos los índices de los negativos fiables: estos serán los que estén más cerca del
-    # prototipo de No Etiquetados que del prototipo de Positivos. Se comprueba para cada muestra:
+    # Obtenemos los índices de los negativos fiables. Estos se corresponderán con
+    # las muestras que estén mas cerca del prototipo de No Etiquetados que del de Positivos:
     indices_RN = indices_U[dist_prot_u < dist_prot_p]
 
     print("\nIdentificacion de Negativos Fiables con Rocchio completada:")
-    print(f"\tMetrica: {nombre_metrica}")
     print(f"\tPositivos: {len(P)}")
     print(f"\tNo Etiquetados: {len(U)}")
     print(f"\tNegativos Fiables: {len(indices_RN)}")
@@ -64,45 +64,44 @@ def rocchio(X, y, nombre_metrica):
 
 # KNN (K-Nearest Neighbours):
 def knn(X, y, nombre_metrica, k, porcentaje_rn):
-    # Transformamos "X" e "y" en arrays de numpy para una mayor eficiencia:
-    X = np.asarray(X, dtype = np.float64)
-    y = np.asarray(y)
-
     # Comprobamos que la métrica sea válida:
-    metrica = comprobar_nombre_metrica(nombre_metrica)
+    nombre_metrica = comprobar_nombre_metrica(nombre_metrica)
 
-    # Aplanamos X (si fuese necesario) para poder calcular distancias correctamente:
-    X_flat = preparar_datos(X)
+    # Preparamos los datos:
+    X, y = preparado_datos(X, y)
 
-    # Índices originales de las muestras no etiquetadas:
+    # Obtenemos los índices de las muestras no etiquetadas:
     indices_U = np.where(y == 0)[0]
 
     # Separamos las muestras Positivas y las No Etiquetadas:
-    P = X_flat[y == 1]
-    U = X_flat[y == 0]
+    P = X[y == 1]
+    U = X[y == 0]
 
     # Creamos un modelo de KNN:
-    if metrica == "mahalanobis":
-        VI = obtener_vi(P)
-        knn_model = NearestNeighbors(n_neighbors = k, metric = metrica, metric_params = {"VI": VI})
+    if nombre_metrica == "mahalanobis":
+        VI = obtener_vi(X)
+        modelo_knn = NearestNeighbors(
+            n_neighbors = k,
+            metric = nombre_metrica,
+            metric_params = {"VI": VI})
     else:
-        knn_model = NearestNeighbors(n_neighbors = k, metric = metrica)
+        modelo_knn = NearestNeighbors(
+            n_neighbors = k,
+            metric = nombre_metrica)
 
-    # Con "fit" hacemos que cree un mapa de los Positivos.
-    # El modelo de KNN calculará las distancias a esos puntos:
-    knn_model.fit(P)
+    # Con "fit", se crea un mapa de las muestras positivas, que el modelo podrá utilizar:
+    modelo_knn.fit(P)
 
     # Para cada No Etiquetado, obtenemos su distancia media a los k vecinos positivos más cercanos:
-    distancias, _ = knn_model.kneighbors(U) # Sólo nos interesan las distancias obtenidas, no los índices de los puntos
+    distancias, _ = modelo_knn.kneighbors(U) # Sólo nos interesan las distancias obtenidas, no los índices de los puntos
     dist_medias = np.mean(distancias, axis = 1)
 
-    # Se deciden cuáles son los No Etiquetados más alejados de los positivos (Neg. fiables).
-    # Se utiliza el porcentaje de negativos fiables para separarlos:
+    # Se deciden cuáles son los No Etiquetados más alejados de los positivos (Negativos Fiables).
+    # Para separarlos, se utiliza el porcentaje de negativos fiables:
     threshold = np.quantile(dist_medias, 1 - porcentaje_rn)
     indices_RN = indices_U[dist_medias >= threshold]
 
     print("\nIdentificacion de Negativos Fiables con KNN completada:")
-    print(f"\tMetrica: {nombre_metrica}; k = {k}; porcentaje RN: {porcentaje_rn}")
     print(f"\tPositivos: {len(P)}")
     print(f"\tNo Etiquetados: {len(U)}")
     print(f"\tNegativos Fiables: {len(indices_RN)}")
@@ -112,79 +111,63 @@ def knn(X, y, nombre_metrica, k, porcentaje_rn):
 
 # K-Means:
 def kmeans(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
-    # Transformamos "X" e "y" en arrays de numpy para una mayor eficiencia:
-    X = np.asarray(X, dtype = np.float64)
-    y = np.asarray(y)
+    # Comprobamos que la métrica sea válida:
+    nombre_metrica = comprobar_nombre_metrica(nombre_metrica)
 
-    # Comprobamos que la métrica sea válida y obtenemos una métrica de scipy:
-    metrica = comprobar_nombre_metrica(nombre_metrica)
-    metrica_sc = obtener_metrica(metrica)
+    # Preparamos los datos:
+    X, y = preparado_datos(X, y)
 
-    # Aplanamos X (si fuese necesario) para poder calcular distancias correctamente:
-    X_flat = preparar_datos(X)
-
-    # Índices originales de las muestras no etiquetadas:
+    # Obtenemos los índices de las muestras no etiquetadas:
     indices_U = np.where(y == 0)[0]
 
     # Separamos las muestras Positivas y las No Etiquetadas:
-    P = X_flat[y == 1]
-    U = X_flat[y == 0]
+    P = X[y == 1]
+    U = X[y == 0]
 
-    # Creamos un modelo de K-Means. Con "fit_predict" se ejecuta el algoritmo de K-Means
-    # sobre los No Etiquetados, obteniendo k clusters que ya han convergido:
-    kmeans_model = KMeans(n_clusters = k, random_state = semilla)
-    clusters_u = kmeans_model.fit_predict(U)
+    # Creamos un modelo de K-Means (con distancia Euclídea). Con "fit_predict" se ejecuta
+    # el algoritmo de K-Means sobre los No Etiquetados, obteniendo k clusters que ya han convergido:
+    modelo_kmeans = KMeans(n_clusters = k, random_state = semilla)
+    clusters_u = modelo_kmeans.fit_predict(U)
 
     # Obtenemos los centroides de cada cluster de los No Etiquetados, y el centroide (prototipo) positivo:
-    centroides_u = kmeans_model.cluster_centers_
-    prototipo_p = np.mean(P, axis = 0)
+    centroides_u = modelo_kmeans.cluster_centers_
+    prototipo_p = np.mean(P, axis = 0).reshape(1, -1)
 
-    # En caso de distancia de Mahalanobis:
+    # Calculamos la distancia de cada centroide al prototipo positivo:
     VI = None
     if nombre_metrica == "mahalanobis":
-        VI = obtener_vi(P)
+        VI = obtener_vi(X)
+        dist_centroides = pairwise_distances(centroides_u, prototipo_p, nombre_metrica, VI = VI).ravel()
+    else:
+        dist_centroides = pairwise_distances(centroides_u, prototipo_p, nombre_metrica).ravel()
 
-    # Calculamos la distancia de cada centroide (cluster) negativo al positivo:
-    dist_centroides = []
-    for c in centroides_u:
-        if nombre_metrica == "mahalanobis":
-            distancia = metrica_sc(c, prototipo_p, VI = VI)
-        else:
-            distancia = metrica_sc(c, prototipo_p)
-        dist_centroides.append(distancia)
-    dist_centroides = np.array(dist_centroides)
+    # Ordenamos los centroides por distancia, de más lejanos a más cercanos al positivo:
+    orden_centroides = np.argsort(dist_centroides)[::-1]
 
-    # Ordenamos los clusters por distancia, de más lejanos a más cercanos al positivo:
-    dist_centroides_ord = np.argsort(dist_centroides)[::-1]
-
-    # Seleccionamos la mitad de estos clusters como candidatos a negativos:
+    # Seleccionamos la mitad de estos clústeres como candidatos a negativos:
     num_clusters_neg = max(1, k // 2)
-    clusters_neg = dist_centroides_ord[:num_clusters_neg]
+    clusters_neg = orden_centroides[:num_clusters_neg]
 
-    # Seleccionamos las muestras individuales candidatas dentro de estos clusters:
+    # Ahora, seleccionamos las muestras individuales candidatas dentro de estos clústeres.
+    # Estas son las que más alejadas se encuentran del centroide positivo:
     mask_candidatos = np.isin(clusters_u, clusters_neg)
     candidatos = U[mask_candidatos]
     indices_candidatos = indices_U[mask_candidatos]
 
-    # Se calculan las distancias de los candidatos al prototipo positivo:
-    dist_candidatos = []
-    for m in candidatos:
-        if nombre_metrica == "mahalanobis":
-            distancia = metrica_sc(m, prototipo_p, VI = VI)
-        else:
-            distancia = metrica_sc(m, prototipo_p)
-        dist_candidatos.append(distancia)
-    dist_candidatos = np.array(dist_candidatos)
+    # Calculamos la distancia de cada candidato al prototipo positivo:
+    if nombre_metrica == "mahalanobis":
+        dist_candidatos = pairwise_distances(candidatos, prototipo_p, nombre_metrica, VI = VI).ravel()
+    else:
+        dist_candidatos = pairwise_distances(candidatos, prototipo_p, nombre_metrica).ravel()
 
     # Ordenamos los candidatos por distancia, de más lejanos a más cercanos al positivo:
-    dist_candidatos_ord = np.argsort(dist_candidatos)[::-1]
+    orden_candidatos = np.argsort(dist_candidatos)[::-1]
 
-    # Seleccionamos un porcentaje de los candidatos como negativos fiables:
-    num_rn = int(len(U) * porcentaje_rn)
-    indices_RN = indices_candidatos[dist_candidatos_ord[:num_rn]]
+    # Seleccionamos el porcentaje seleccionado de los candidatos como Negativos Fiables:
+    num_rn = min(int(len(U) * porcentaje_rn), len(candidatos))
+    indices_RN = indices_candidatos[orden_candidatos[:num_rn]]
 
     print("\nIdentificacion de Negativos Fiables con K-Means completada:")
-    print(f"\tMetrica: {nombre_metrica}; k = {k}; porcentaje RN: {porcentaje_rn}; semilla = {semilla}")
     print(f"\tPositivos: {len(P)}")
     print(f"\tNo Etiquetados: {len(U)}")
     print(f"\tNegativos Fiables: {len(indices_RN)}")
@@ -194,81 +177,70 @@ def kmeans(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
 
 # K-Medoids:
 def kmedoids(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
-    # Transformamos "X" e "y" en arrays de numpy para una mayor eficiencia:
-    X = np.asarray(X, dtype = np.float64)
-    y = np.asarray(y)
+    # Comprobamos que la métrica sea válida:
+    nombre_metrica = comprobar_nombre_metrica(nombre_metrica)
 
-    # Comprobamos que la métrica sea válida. Además, obtenemos una métrica de scipy:
-    metrica = comprobar_nombre_metrica(nombre_metrica)
-    metrica_sc = obtener_metrica(metrica)
+    # Preparamos los datos:
+    X, y = preparado_datos(X, y)
 
-    # Aplanamos X (si fuese necesario) para poder calcular distancias correctamente:
-    X_flat = preparar_datos(X)
-
-    # Índices originales de las muestras no etiquetadas:
+    # Obtenemos los índices de las muestras no etiquetadas:
     indices_U = np.where(y == 0)[0]
 
     # Separamos las muestras Positivas y las No Etiquetadas:
-    P = X_flat[y == 1]
-    U = X_flat[y == 0]
+    P = X[y == 1]
+    U = X[y == 0]
 
-    # Creamos un modelo de K-Medoids. Con "fit_predict" se ejecuta el algoritmo de K-Medoids
-    # sobre los No Etiquetados, obteniendo k clusters que ya han convergido:
-    kmedoids_model = KMedoids(n_clusters = k, metric = metrica, random_state = semilla)
-    clusters_u = kmedoids_model.fit_predict(U)
-
-    # Obtenemos los centroides (medoides) de cada cluster de los No Etiquetados. La diferencia con K-Means
-    # es que estos son puntos reales del dataset. Además, obtenemos el centroide (prototipo) positivo:
-    medoides_u = kmedoids_model.medoid_indices_
-    prototipo_p = np.mean(P, axis = 0)
-
-    # En caso de distancia de Mahalanobis:
+    # Creamos un modelo de K-Medoids. Con "fit_predict" se ejecuta el algoritmo de K-Medoids sobre
+    # los No Etiquetados, obteniendo k clusters que ya han convergido. A diferencia de K-Means,
+    # K-Medoids sí que puede utilizar la métrica especificada durante el proceso de clustering:
     VI = None
     if nombre_metrica == "mahalanobis":
-        VI = obtener_vi(P)
+        VI = obtener_vi(X)
+        matriz_distancias = pairwise_distances(U, metric = nombre_metrica, VI = VI)
+        modelo_kmedoids = KMedoids(n_clusters = k, metric = "precomputed", random_state = semilla)
+        clusters_u = modelo_kmedoids.fit_predict(matriz_distancias)
+    else:
+        modelo_kmedoids = KMedoids(n_clusters = k, metric = nombre_metrica, random_state = semilla)
+        clusters_u = modelo_kmedoids.fit_predict(U)
 
-    # Calculamos la distancia de cada medoide (cluster) negativo al positivo:
-    dist_medoides = []
-    for idx in medoides_u:
-        m = U[idx]
-        if nombre_metrica == "mahalanobis":
-            distancia = metrica_sc(m, prototipo_p, VI = VI)
-        else:
-            distancia = metrica_sc(m, prototipo_p)
-        dist_medoides.append(distancia)
-    dist_medoides = np.array(dist_medoides)
+    # Obtenemos los centroides (medoides) de cada cluster de los No Etiquetados, y el centroide (prototipo) positivo.
+    # La diferencia con K-Means es que los medoides son puntos reales del dataset, y no medias:
+    medoides_u = U[modelo_kmedoids.medoid_indices_]
+    prototipo_p = np.mean(P, axis = 0).reshape(1, -1)
 
-    # Ordenamos los clusters por distancia, de más lejanos a más cercanos al positivo:
-    dist_medoides_ord = np.argsort(dist_medoides)[::-1]
+    # Calculamos la distancia de cada medoide al prototipo positivo:
+    if nombre_metrica == "mahalanobis":
+        dist_medoides = pairwise_distances(medoides_u, prototipo_p, nombre_metrica, VI = VI).ravel()
+    else:
+        dist_medoides = pairwise_distances(medoides_u, prototipo_p, nombre_metrica).ravel()
 
-    # Seleccionamos la mitad de estos clusters como candidatos a negativos:
+    # Ordenamos los medoides por distancia, de más lejanos a más cercanos al positivo:
+    orden_medoides = np.argsort(dist_medoides)[::-1]
+
+    # Seleccionamos la mitad de estos clústeres como candidatos a negativos:
     num_clusters_neg = max(1, k // 2)
-    clusters_neg = dist_medoides_ord[:num_clusters_neg]
+    clusters_neg = orden_medoides[:num_clusters_neg]
 
-    # Seleccionamos las muestras individuales candidatas dentro de estos clusters:
+    # Ahora, seleccionamos las muestras individuales candidatas dentro de estos clústeres.
+    # Estas son las que más alejadas se encuentran del centroide positivo:
     mask_candidatos = np.isin(clusters_u, clusters_neg)
     candidatos = U[mask_candidatos]
     indices_candidatos = indices_U[mask_candidatos]
 
-    # Se calculan las distancias de los candidatos al prototipo positivo:
-    dist_candidatos = []
-    for m in candidatos:
-        if nombre_metrica == "mahalanobis":
-            distancia = metrica_sc(m, prototipo_p, VI = VI)
-        else:
-            distancia = metrica_sc(m, prototipo_p)
-        dist_candidatos.append(distancia)
-    dist_candidatos = np.array(dist_candidatos)
+    # Calculamos la distancia de cada candidato al prototipo positivo:
+    if nombre_metrica == "mahalanobis":
+        dist_candidatos = pairwise_distances(candidatos, prototipo_p, nombre_metrica, VI = VI).ravel()
+    else:
+        dist_candidatos = pairwise_distances(candidatos, prototipo_p, nombre_metrica).ravel()
 
     # Ordenamos los candidatos por distancia, de más lejanos a más cercanos al positivo:
-    dist_candidatos_ord = np.argsort(dist_candidatos)[::-1]
+    orden_candidatos = np.argsort(dist_candidatos)[::-1]
 
-    # Seleccionamos un porcentaje de los candidatos como negativos fiables:
-    num_rn = int(len(U) * porcentaje_rn)
-    indices_RN = indices_candidatos[dist_candidatos_ord[:num_rn]]
+    # Seleccionamos el porcentaje seleccionado de los candidatos como Negativos Fiables:
+    num_rn = min(int(len(U) * porcentaje_rn), len(candidatos))
+    indices_RN = indices_candidatos[orden_candidatos[:num_rn]]
 
     print("\nIdentificacion de Negativos Fiables con K-Medoids completada:")
-    print(f"\tMetrica: {nombre_metrica}; k = {k}; porcentaje RN: {porcentaje_rn}; semilla = {semilla}")
     print(f"\tPositivos: {len(P)}")
     print(f"\tNo Etiquetados: {len(U)}")
     print(f"\tNegativos Fiables: {len(indices_RN)}")
@@ -276,40 +248,41 @@ def kmedoids(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
     return indices_RN
 
 
-# CRNE:
+# CRNE (C-CRNE):
 def crne(X, y, nombre_metrica, k, semilla = 1):
-    # Transformamos "X" e "y" en arrays de numpy para una mayor eficiencia:
-    X = np.asarray(X, dtype = np.float64)
-    y = np.asarray(y)
-    
-    # Comprobamos que la métrica sea válida y obtenemos una métrica de scipy:
-    metrica = comprobar_nombre_metrica(nombre_metrica)
-    metrica_sc = obtener_metrica(metrica)
+    # Comprobamos que la métrica sea válida:
+    nombre_metrica = comprobar_nombre_metrica(nombre_metrica)
 
-    # Aplanamos X (si fuese necesario) para poder calcular distancias correctamente:
-    X_flat = preparar_datos(X)
+    # Preparamos los datos:
+    X, y = preparado_datos(X, y)
 
-    # Hacemos clustering con K-Means, y utilizamos "fit_predict" en todo el conjunto:
-    kmeans_model = KMeans(n_clusters = k, random_state = semilla)
-    clusters = kmeans_model.fit_predict(X_flat)
+    # Creamos un modelo de K-Medoids. Con "fit_predict" se ejecuta
+    # el algoritmo de K-Medoids sobre todo el conjunto ("X"), obteniendo k clusters:
+    VI = None
+    if nombre_metrica == "mahalanobis":
+        VI = obtener_vi(X)
+        matriz_distancias = pairwise_distances(X, metric = nombre_metrica, VI = VI)
+        modelo_kmedoids = KMedoids(n_clusters = k, metric = "precomputed", random_state = semilla)
+        clusters = modelo_kmedoids.fit_predict(matriz_distancias)
+    else:
+        modelo_kmedoids = KMedoids(n_clusters = k, metric = nombre_metrica, random_state = semilla)
+        clusters = modelo_kmedoids.fit_predict(X)
 
-    # Detectamos los positivos en y:
-    p_mask = (y == 1)
+    # Identificamos los positivos dentro de "y":
+    mask_positivos = (y == 1)
 
-    # Identificamos clusters que no tengan positivos:
-    clusters_rn = []
-    for c in range(k):
-        cluster_idx = np.where(clusters == c)[0]
+    # Identificamos los clústeres que contengan algún ejemplo positivo:
+    clusters_con_pos = np.unique(clusters[mask_positivos])
 
-        # Si no hay ningun positivo en el cluster, se convierte en un cluster RN:
-        if not np.any(p_mask[cluster_idx]):
-            clusters_rn.append(c)
-    
-    # Extraemos los RN de cada cluster:
-    indices_RN = np.where(np.isin(clusters, clusters_rn))[0]
+    # Se calcula la diferencia entre todos los clústeres y los anteriores, es decir,
+    # los clústeres donde no hay ningún positivo. Si este es el caso, entonces
+    # todas las muestras de ese clúster serán Negativos Fiables:
+    clusters_sin_pos = np.setdiff1d(np.arange(k), clusters_con_pos)
+
+    # Obtenemos los índices de los negativos fiables:
+    indices_RN = np.where(np.isin(clusters, clusters_sin_pos))[0]
 
     print("\nIdentificacion de Negativos Fiables con CRNE completada:")
-    print(f"\tMetrica: {nombre_metrica}; k = {k}; semilla = {semilla}")
     print(f"\tPositivos: {len(X[y == 1])}")
     print(f"\tNo Etiquetados: {len(X[y == 0])}")
     print(f"\tNegativos Fiables: {len(indices_RN)}")
