@@ -7,26 +7,22 @@ from sklearn.model_selection import StratifiedKFold
 from preprocesado.pu_engineering import convertir_a_pu, guardar_dataset_pu
 
 
-# Función auxiliar para obtener los índices de "X" e "y" dados por un fold.
-# Compatible tanto con datasets tabulares como de imágenes:
+# Función auxiliar para obtener los datos correspondientes a por unos índices.
+# Es compatible tanto con datasets tabulares como de imágenes:
 def seleccionar_indices(datos, indices):
-    # Se comprueba si los datos tienen el atributo "iloc" (tabular). Si lo tienen, se utiliza:
+    # Si los datos tienen en atributo "iloc" (propiedad de pandas), se utiliza:
     if hasattr(datos, "iloc"):
         return datos.iloc[indices]
 
-    # En otro caso, se devuelven sin "iloc":
+    # En caso contrario (numpy), se devuelven sin utilizar "iloc":
     return datos[indices]
 
 
 # Función para separar un dataset en K-folds:
 def separar_dataset_en_k(X, y, k, ruta_guardado, guardado_npy, semilla = None):
-    # Se divide el set en K-folds estratificados, con lo que se mantiene
-    # la misma proporción de positivos y negativos en cada división, aproximadamente:
-    kfold = StratifiedKFold(
-        n_splits = k,
-        shuffle = True,
-        random_state = semilla
-    )
+    # Se divide el set en K-folds estratificados. Con ello se mantiene la misma
+    # proporción de muestras de cada clase en cada división, aproximadamente:
+    kfold = StratifiedKFold(n_splits = k, shuffle = True, random_state = semilla)
 
     # Se crea el directorio donde se guardarán los folds:
     os.makedirs(ruta_guardado, exist_ok = True)
@@ -34,10 +30,10 @@ def separar_dataset_en_k(X, y, k, ruta_guardado, guardado_npy, semilla = None):
     # Bucle principal:
     fold_num = 1
     for idx in kfold.split(X, y):
-        # Sólo nos interesa el fold (conjunto de test) de cada división:
+        # Sólo nos interesan los índices correspondientes al fold (conjunto de test) de cada división:
         fold_idx = idx[1]
 
-        # Se obtienen los índices de "X" e "y" dados por el fold:
+        # Se obtienen los datos de "X" e "y" correspondientes a los índices dados:
         X_fold = seleccionar_indices(X, fold_idx)
         y_fold = seleccionar_indices(y, fold_idx)
 
@@ -71,7 +67,7 @@ def guardar_fold(X, y, ruta, fold_num, guardado_npy):
 
         # Copiamos los valores de "X" e "y" a un dataframe:
         dataframe = X.copy()
-        dataframe["y"] = y.values
+        dataframe["y"] = np.asarray(y)
 
         # Guardamos el archivo .csv con la anterior ruta:
         dataframe.to_csv(ruta_csv, index = False, sep = ";")
@@ -79,7 +75,7 @@ def guardar_fold(X, y, ruta, fold_num, guardado_npy):
 
 # Función para generar folds PU a partir de los folds originales:
 def generar_folds_pu(ruta_original, ruta_pu, guardado_npy, k, clases_positivas, porcentaje_positivos, semilla = None):
-    # Primero, se genera el directorio para los folds PU:
+    # Se crea el directorio donde se guardarán las etiquetas PU:
     ruta_pu = Path(ruta_pu)
     os.makedirs(ruta_pu, exist_ok = True)
 
@@ -88,11 +84,11 @@ def generar_folds_pu(ruta_original, ruta_pu, guardado_npy, k, clases_positivas, 
         # Se carga el fold:
         X, y = cargar_fold(ruta_original, fold_num, guardado_npy)
 
-        # Se convierte el fold a PU:
-        X_pu, y_pu, y_gt = convertir_a_pu(X, y, clases_positivas, porcentaje_positivos, semilla, f"Fold {fold_num}")
+        # Se convierte el fold a PU. Para ello, sólo es necesario convertir las etiquetas ("y" a "y_pu"):
+        y_pu = convertir_a_pu(y, clases_positivas, porcentaje_positivos, semilla, f"Fold {fold_num}")
 
         # Se guarda el fold en la ruta deseada:
-        guardar_dataset_pu(X_pu, y_pu, y_gt, ruta_pu, guardado_npy, f"fold_{fold_num}")
+        guardar_dataset_pu(X, y_pu, ruta_pu, guardado_npy, f"fold_{fold_num}")
     
     print(f"Se han creado {k} folds PU en: {ruta_pu}")
 
@@ -145,17 +141,14 @@ def cargar_fold(ruta_folds, fold_num, guardado_npy):
 
     # Si el fold estaba guardado como ".csv":
     else:
-        # Se obtiene la ruta como un Path:
+        # Se obtiene la ruta del fold como un Path:
         ruta_fold = Path(ruta_folds) / f"{nombre_fold}.csv"
 
-        # Se obtiene el dataframe del fold:
+        # Se crea un dataframe a partir del fold:
         dataframe = pd.read_csv(ruta_fold, sep = ";")
 
-        # El dataframe se separa en "X" e "y". Si hubiese una columna "y_gt" (folds PU), se descarta:
-        if "y_gt" in dataframe.columns:
-            X = dataframe.drop(columns = ["y", "y_gt"])
-        else:
-            X = dataframe.drop(columns = "y") # Evitamos que de error
+        # Separamos el dataframe en "X" e "y":
+        X = dataframe.drop(columns = "y")
         y = dataframe["y"]
 
     return X, y
