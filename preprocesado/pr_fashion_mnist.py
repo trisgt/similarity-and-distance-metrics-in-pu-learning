@@ -1,17 +1,19 @@
 import numpy as np
 from config.paths_config import DATASETS, ENGINEERED_DATASETS, SPLIT_DATASETS
-from preprocesado.pr_imagenes import cargar_imgs_carpetas
+from preprocesado.pr_imagenes import cargar_imgs_idx, cargar_etiqs_idx
 from preprocesado.kfold import separar_dataset_en_k, generar_folds_pu
 
 # Rutas del dataset original de entrenamiento y de test:
-RUTA_DT_TRAIN = DATASETS / "fer-2013" / "train"
-RUTA_DT_TEST = DATASETS / "fer-2013" / "test"
+RUTA_DT_TRAIN = DATASETS / "fashion_mnist" / "train-images-idx3-ubyte"
+RUTA_DT_TRAIN_LABELS = DATASETS / "fashion_mnist" / "train-labels-idx1-ubyte"
+RUTA_DT_TEST = DATASETS / "fashion_mnist" / "t10k-images-idx3-ubyte"
+RUTA_DT_TEST_LABELS = DATASETS / "fashion_mnist" / "t10k-labels-idx1-ubyte"
 
 # Ruta del dataset tras separación en K-folds:
-RUTA_FOLDS = SPLIT_DATASETS / "fer-2013"
+RUTA_FOLDS = SPLIT_DATASETS / "fashion_mnist"
 
 # Ruta de los folds tras convertirlos en PU:
-RUTA_FOLDS_PU = ENGINEERED_DATASETS / "fer-2013"
+RUTA_FOLDS_PU = ENGINEERED_DATASETS / "fashion_mnist"
 
 
 # Parámetros para el split del dataset en k-folds:
@@ -26,24 +28,13 @@ CL_POSITIVAS = [0, 1, 2]
 PORCENTAJE_POS = 0.6
 SEMILLA_PR = 1
 
-# Parámetros para imágenes:
-ESCALA_GRISES = True
-
 # Función para cargar el dataset original. Se concatenan los de entrenamiento y test para luego hacer k-folds:
-def cargar_fer_2013(path_train, path_test):
-    # Etiquetas de las clases de FER-2013:
-    clases = {
-        "angry": 0,
-        "disgust": 1,
-        "fear": 2,
-        "happy": 3,
-        "sad": 4,
-        "surprise": 5,
-        "neutral": 6
-    }
-
-    X_train, y_train = cargar_imgs_carpetas(path_train, clases, ESCALA_GRISES)
-    X_test, y_test = cargar_imgs_carpetas(path_test, clases, ESCALA_GRISES)
+def cargar_fashion_mnist(path_train, path_train_labels, path_test, path_test_labels):
+    # Como los conjuntos y sus labels ("y") están separados, hay que cargar 4 conjuntos:
+    X_train = cargar_imgs_idx(path_train)
+    X_test = cargar_imgs_idx(path_test)
+    y_train = cargar_etiqs_idx(path_train_labels)
+    y_test = cargar_etiqs_idx(path_test_labels)
 
     # Tras leer el dataset de entrenamiento y test, ambos se concatenan:
     X = np.concatenate([X_train, X_test], axis = 0)
@@ -54,7 +45,7 @@ def cargar_fer_2013(path_train, path_test):
 # Función principal:
 if __name__ == "__main__":
     # Carga y concatenación de los dataset originales:
-    X, y = cargar_fer_2013(RUTA_DT_TRAIN, RUTA_DT_TEST)
+    X, y = cargar_fashion_mnist(RUTA_DT_TRAIN, RUTA_DT_TRAIN_LABELS, RUTA_DT_TEST, RUTA_DT_TEST_LABELS)
 
     # Separación en K-folds:
     separar_dataset_en_k(

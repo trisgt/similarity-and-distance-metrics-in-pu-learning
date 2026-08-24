@@ -1,9 +1,11 @@
 import numpy as np
 from pathlib import Path
 from PIL import Image
+import idx2numpy
 
-# Función para cargar un conjunto de imágenes. Funciona cuando cada clase tiene su carpeta propia:
-def cargar_imagenes(path_data, clases, escala_grises = False):
+# Función para cargar un conjunto de imágenes en formato ".png", ".jpg"...,
+# donde cada clase tiene su carpeta de imágenes spropia:
+def cargar_imgs_carpetas(path_data, clases, escala_grises = False):
     lista_X = []
     lista_y = []
 
@@ -44,3 +46,32 @@ def cargar_imagenes(path_data, clases, escala_grises = False):
     y = np.asarray(lista_y, dtype = int)
 
     return X, y
+
+
+# Función para cargar imágenes en formato IDX binario, utilizando la librería "idx2numpy":
+def cargar_imgs_idx(path_data):
+    # Se convierte el Path en un string:
+    path_data = str(path_data)
+
+    # Se lee el archivo IDX y se convierte directamente a un "numpy.ndarray":
+    X = idx2numpy.convert_from_file(path_data)
+
+    # Los píxeles se convierten a float32 y se normalizan:
+    X = X.astype(np.float32)
+    X /= 255.0
+
+    # Se añade una dimensión de canal:
+    X = np.expand_dims(X, axis = -1)
+
+    return X
+
+
+# Función para cargar etiquetas en formato IDX binario, utilizando la librería "idx2numpy":
+def cargar_etiqs_idx(path_data):
+    # Se convierte el Path en un string:
+    path_data = str(path_data)
+
+    # Se lee el archivo IDX y se convierte directamente a un "numpy.ndarray":
+    y = idx2numpy.convert_from_file(path_data)
+
+    return y
