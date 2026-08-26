@@ -125,9 +125,15 @@ def juntar_folds_separados(ruta_folds, folds, guardado_npy):
 
 
 # Función auxiliar para cargar un fold de un dataset, tanto ".csv" como ".npy":
-def cargar_fold(ruta_folds, fold_num, guardado_npy):
-    # Establecemos el nombre del fold:
-    nombre_fold = f"fold_{fold_num}"
+def cargar_fold(ruta_folds, fold_num, guardado_npy, es_train = False, es_test = False):
+    # Establecemos el nombre del fold. Si este es específicamente un fold de
+    # entrenamiento o de test, modificamos el nombre adecuadamente:
+    if es_train:
+        nombre_fold = f"fold_{fold_num}_train"
+    elif es_test:
+        nombre_fold = f"fold_{fold_num}_test"
+    else:
+        nombre_fold = f"fold_{fold_num}"
 
     # Si el fold estaba guardado como ".npy":
     if guardado_npy:
