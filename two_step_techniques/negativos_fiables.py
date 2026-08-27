@@ -9,14 +9,15 @@ from two_step_techniques.metricas_distancia import comprobar_nombre_metrica, obt
 
 # Función auxiliar para el preparado de datos. Transforma "X" e "y" a arrays de numpy
 # y aplana "X" (si fuese necesario) para poder calcular distancias correctamente:
-def preparado_datos(X, y):
+def preparado_datos(X, y, aplanar = True):
     # "X" e "y" se transforman en arrays de numpy para una mayor eficiencia:
     X = np.asarray(X, dtype = np.float32)
     y = np.asarray(y)
 
-    # Si fuese necesario (por ejemplo, con imágenes), aplanamos "X":
-    if X.ndim > 2:
-        X = X.reshape(X.shape[0], -1)
+    # Si se indicase la opción y fuese necesario (en imágenes), aplanamos "X":
+    if aplanar:
+        if X.ndim > 2:
+            X = X.reshape(X.shape[0], -1)
 
     return X, y
 

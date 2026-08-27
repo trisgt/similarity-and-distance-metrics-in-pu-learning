@@ -3,30 +3,28 @@ import shutil
 import pandas as pd
 from config.paths_config import DATASETS, SPLIT_DATASETS, GENUINE_PU_DATASETS
 
-# Ruta de la carpeta con todos los datasets (incluídos el binario, no PU):
+# Ruta de la carpeta con todos los datasets originales:
 RUTA_CARPETA_DT = DATASETS / "Breast Cancer Wisconsin"
 
-# Ruta de los folds del dataset binario renombrado:
+# Ruta de los folds del dataset binario (no PU) reorganizado:
 RUTA_FOLDS = SPLIT_DATASETS / "breast_cancer"
 
-# Ruta de los folds genuinos del dataset PU con porcentaje de positivos escogido:
+# Ruta de los folds del dataset PU genuíno, con porcentaje de positivos escogido:
 RUTA_FOLDS_GEN_PU = GENUINE_PU_DATASETS / "breast_cancer"
 
-# Parámetros del split del dataset en k-folds. Se deben utilizar 5 folds:
-NUM_FOLDS = 5
+# Parámetros no modificables, específicos de Breast Cancer:
+NUM_FOLDS = 5 # Número de folds del dataset
+GUARDADO_NPY = False # Datasets guardados como ".csv"
+CL_POSITIVAS = 1
 
-# Parámetros para el guardado de los datasets:
-GUARDADO_NPY = False # Debe de ser "False" (guardado como ".csv")
-
-# Parámetros para la elección del dataset. La conversion a PU ya se ha hecho previamente:
-CL_POSITIVAS = 1 # Debe ser 1
-PORCENTAJE_POS = 0.6 # Debe ser 0.05, 0.1, ..., 0.95, 1
+# Parámetros para la elección del dataset. La conversión a PU ya se ha hecho previamente:
+PORCENTAJE_POS = 0.6 # Puede tomar valores 0.05, 0.1, ..., 0.9, 0.95
 
 
-# Función auxiliar para convertir el porcentaje de positivos visibles usado en experimentos
+# Función auxiliar para convertir el porcentaje de positivos visibles usado en los experimentos
 # al de positivos no etiquetados (n.e.) multiplicado por 100, el utilizado por Breast Cancer:
 def obtener_porcentaje_pos_ne(porcentaje_pos):
-    # Si el porcentaje es "None", nos referimos al dataset binario:
+    # Si el porcentaje de positivos es "None", nos referimos al dataset binario:
     if porcentaje_pos is None:
         return None
 
@@ -37,7 +35,7 @@ def obtener_porcentaje_pos_ne(porcentaje_pos):
 
 # Función auxiliar para obtener la carpeta del dataset utilizando el procentaje de positivos n.e. dado:
 def obtener_carpeta_porc_pos_ne(porcentaje_pos_ne):
-    # Si el porcentaje es "None", nos referimos al dataset binario:
+    # Si el porcentaje de positivos es "None", nos referimos al dataset binario:
     if porcentaje_pos_ne is None:
         return RUTA_CARPETA_DT / "Binary"
 
@@ -48,8 +46,7 @@ def obtener_carpeta_porc_pos_ne(porcentaje_pos_ne):
 
 # Función auxiliar para construír el nombre de un fold, tanto de entrenamiento como de test:
 def obtener_nombre_fold(porcentaje_pos_ne, fold_num, es_test):
-    # Si el porcentaje es "None", nos referimos al dataset binario.
-    # Dividimos el string de la ruta por comodidad:
+    # Si el porcentaje de positivos es "None", nos referimos al dataset binario:
     if porcentaje_pos_ne is None:
         string_start = f"breast_cancer"
         string_end = f" set fold {fold_num}"
@@ -66,13 +63,13 @@ def obtener_nombre_fold(porcentaje_pos_ne, fold_num, es_test):
 
 # Función para reorganizar los folds originales y adaptarlos a la estructura del proyecto:
 def reorganizar_folds(porcentaje_pos):
-    # Convertimos el porcentaje de positivos al porc. de positivos no etiquetados:
+    # Convertimos el porcentaje de positivos al porcentaje de positivos no etiquetados:
     porcentaje_pos_ne = obtener_porcentaje_pos_ne(porcentaje_pos)
 
     # Obtenemos la ruta correspondiente al porcentaje actual:
     ruta_carpeta_porc_pos_ne = obtener_carpeta_porc_pos_ne(porcentaje_pos_ne)
 
-    # Obtenemos, y creamos si fuese necesario, la ruta destino:
+    # Obtenemos, y creamos si fuese necesario, la ruta de destino:
     if porcentaje_pos is None:
         ruta_destino = RUTA_FOLDS
     else:

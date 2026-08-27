@@ -44,7 +44,7 @@ def construir_dataset_entrenamiento(X, y, indices_RN, balanceo_clases = False):
 
 
 # Regresión Logística (Logistic Regression):
-def logistic_regression(X, y, indices_RN, penalty = "l2", C = 1, semilla = None, balanceo_clases = False):
+def logistic_regression(X, y, indices_RN, semilla = None, balanceo_clases = False):
     # Preparamos los datos:
     X, y = preparado_datos(X, y)
 
@@ -52,12 +52,7 @@ def logistic_regression(X, y, indices_RN, penalty = "l2", C = 1, semilla = None,
     X_train, y_train, pesos = construir_dataset_entrenamiento(X, y, indices_RN, balanceo_clases)
 
     # Creamos el clasificador y lo entrenamos:
-    modelo = LogisticRegression(
-        penalty = penalty,      # Regularización
-        C = C,                  # Inverso de regularización
-        random_state = semilla,
-        max_iter = 1000
-    )
+    modelo = LogisticRegression(random_state = semilla, max_iter = 1000)
     modelo.fit(X_train, y_train, sample_weight = pesos)
 
     print("\nAprendizaje con Regresión Logística completado.")
@@ -65,7 +60,7 @@ def logistic_regression(X, y, indices_RN, penalty = "l2", C = 1, semilla = None,
 
 
 # Random Forest:
-def random_forest(X, y, indices_RN, n_estimators = 10, criterion = "gini", max_depth = 50, semilla = None, balanceo_clases = False):
+def random_forest(X, y, indices_RN, semilla = None, balanceo_clases = False):
     # Preparamos los datos:
     X, y = preparado_datos(X, y)
 
@@ -73,12 +68,7 @@ def random_forest(X, y, indices_RN, n_estimators = 10, criterion = "gini", max_d
     X_train, y_train, pesos = construir_dataset_entrenamiento(X, y, indices_RN, balanceo_clases)
 
     # Creamos el clasificador y lo entrenamos:
-    modelo = RandomForestClassifier(
-        n_estimators = n_estimators,    # Número de árboles
-        criterion = criterion,          # Función para cortes en cada árbol
-        max_depth = max_depth,          # Profundidad del árbol
-        random_state = semilla
-    )
+    modelo = RandomForestClassifier(random_state = semilla)
     modelo.fit(X_train, y_train, sample_weight = pesos)
 
     print("\nAprendizaje con Random Forest completado.")
@@ -102,7 +92,7 @@ def xgboost_lrn(X, y, indices_RN, semilla = None, balanceo_clases = False):
 
 
 # Perceptrón Multicapa (MLP):
-def mlp(X, y, indices_RN, hidden_layer_sizes = (10, 10), activation = "tanh", semilla = None, balanceo_clases = False):
+def mlp(X, y, indices_RN, semilla = None, balanceo_clases = False):
     # Preparamos los datos:
     X, y = preparado_datos(X, y)
 
@@ -110,12 +100,7 @@ def mlp(X, y, indices_RN, hidden_layer_sizes = (10, 10), activation = "tanh", se
     X_train, y_train, pesos = construir_dataset_entrenamiento(X, y, indices_RN, balanceo_clases)
 
     # Creamos el clasificador y lo entrenamos:
-    modelo = MLPClassifier(
-        hidden_layer_sizes = hidden_layer_sizes,    # Arquitectura (capas ocultas)
-        activation = activation,                    # Función no lineal
-        max_iter = 1000,
-        random_state = semilla
-    )
+    modelo = MLPClassifier(max_iter = 1000, random_state = semilla)
     modelo.fit(X_train, y_train, sample_weight = pesos)
 
     print("\nAprendizaje con Perceptron Multicapa (MLP) completado.")
@@ -123,25 +108,26 @@ def mlp(X, y, indices_RN, hidden_layer_sizes = (10, 10), activation = "tanh", se
 
 
 # Red Neuronal Convolucional (CNN):
-def cnn(X, y, indices_RN, optimizer = "adam", loss = "binary_crossentropy", semilla = None, balanceo_clases = False, aprendizaje_sin_pu = False):
-    # "X" e "y" se transforman en arrays de numpy para una mayor eficiencia:
-    X = np.asarray(X, dtype = np.float32)
-    y = np.asarray(y)
+def cnn(X, y, indices_RN, semilla = None, balanceo_clases = False):
+    # Preparamos los datos. En este caso, no se aplanan:
+    X, y = preparado_datos(X, y, aplanar = False)
 
-    # En caso de estar utilizando CNN sin aprendizaje PU:
-    if aprendizaje_sin_pu:
-        X_train = X.copy()
-        y_train = y.copy()
-        pesos = None
+    # Creamos el dataset de entrenamiento. Los datos no se han aplanado de antemano:
+    X_train, y_train, pesos = construir_dataset_entrenamiento(X, y, indices_RN, balanceo_clases)
 
-    # En caso contrario:
-    else:
-        # Creamos el dataset de entrenamiento. Los datos no se aplanan de antemano:
-        X_train, y_train, pesos = construir_dataset_entrenamiento(X, y, indices_RN, balanceo_clases)
+    # Creamos el clasificador y lo entrenamos:
+    modelo = crear_modelo_cnn(X_train)
+    modelo.fit(X_train, y_train, sample_weight = pesos)
 
-    # Creamos el modelo de CNN:
+    print("\nAprendizaje con Red Neuronal Convolucional (CNN) completado.")
+    return modelo
+
+
+# Función auxiliar para crear el modelo de la CNN:
+def crear_modelo_cnn(X):
+    # Creamos el modelo:
     modelo = Sequential([
-        Input(shape = X_train.shape[1:]),
+        Input(shape = X.shape[1:]),
         Conv2D(32, (3, 3), activation = "relu"),
         MaxPooling2D((2, 2)),
         Conv2D(64, (3, 3), activation = "relu"),
@@ -151,15 +137,11 @@ def cnn(X, y, indices_RN, optimizer = "adam", loss = "binary_crossentropy", semi
         Dense(1, activation = "sigmoid")
     ])
 
-    # Configuramos el modelo:
+    # Tras crear el modelo, lo configuramos:
     modelo.compile(
-        optimizer = optimizer,
-        loss = loss,
+        optimizer = "adam",
+        loss = "binary_crossentropy",
         metrics = ["accuracy"]
     )
 
-    # Entrenamos el clasificador:
-    modelo.fit(X_train, y_train, sample_weight = pesos)
-
-    print("\nAprendizaje con Red Neuronal Convolucional (CNN) completado.")
     return modelo
