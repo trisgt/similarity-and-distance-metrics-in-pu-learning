@@ -2,6 +2,7 @@ import os
 import shutil
 import pandas as pd
 from config.paths_config import DATASETS, SPLIT_DATASETS, GENUINE_PU_DATASETS
+from config.preproc_config import PORCENTAJE_POS
 
 # Ruta de la carpeta con todos los datasets originales:
 RUTA_CARPETA_DT = DATASETS / "Breast Cancer Wisconsin"
@@ -15,10 +16,7 @@ RUTA_FOLDS_GEN_PU = GENUINE_PU_DATASETS / "breast_cancer"
 # Parámetros no modificables, específicos de Breast Cancer:
 NUM_FOLDS = 5 # Número de folds del dataset
 GUARDADO_NPY = False # Datasets guardados como ".csv"
-CL_POSITIVAS = 1
-
-# Parámetros para la elección del dataset. La conversión a PU ya se ha hecho previamente:
-PORCENTAJE_POS = 0.6 # Puede tomar valores 0.05, 0.1, ..., 0.9, 0.95
+CL_POSITIVAS = 1 # Clases consideradas como positivas
 
 
 # Función auxiliar para convertir el porcentaje de positivos visibles usado en los experimentos

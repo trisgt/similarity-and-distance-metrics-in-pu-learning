@@ -1,5 +1,6 @@
 import pandas as pd
 from config.paths_config import DATASETS, ENGINEERED_DATASETS, SPLIT_DATASETS
+from config.preproc_config import *
 from preprocesado.pr_textos import generar_embeddings
 from preprocesado.kfold import separar_dataset_en_k, generar_folds_pu
 
@@ -12,21 +13,11 @@ RUTA_FOLDS = SPLIT_DATASETS / "imdb"
 # Ruta de los folds tras convertirlos en PU:
 RUTA_FOLDS_PU = ENGINEERED_DATASETS / "imdb"
 
-# Parámetros para el split del dataset en k-folds:
-NUM_FOLDS = 5
-SEMILLA_SPLIT = 1
-
 # Parámetros para el guardado de los datasets:
 GUARDADO_NPY = True # Si es falso, los datasets se guardan como ".csv"
 
 # Parámetros para la conversión a PU:
-CL_POSITIVAS = 1
-PORCENTAJE_POS = 0.6
-SEMILLA_PR = 1
-
-# Parámetros para los embeddings del texto:
-BATCH_SIZE = 32
-DEVICE = ["cpu", "cpu", "cpu", "cpu"]
+CL_POSITIVAS = 1 # Clases consideradas como positivas
 
 # Función para cargar el dataset original:
 def cargar_imdb(path_data):

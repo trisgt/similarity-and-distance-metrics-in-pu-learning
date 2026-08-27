@@ -1,5 +1,6 @@
 import pandas as pd
 from config.paths_config import DATASETS, ENGINEERED_DATASETS, SPLIT_DATASETS
+from config.preproc_config import *
 from preprocesado.kfold import separar_dataset_en_k, generar_folds_pu
 
 # Rutas del dataset original de entrenamiento y de test:
@@ -12,17 +13,11 @@ RUTA_FOLDS = SPLIT_DATASETS / "isolet"
 # Ruta de los folds tras convertirlos en PU:
 RUTA_FOLDS_PU = ENGINEERED_DATASETS / "isolet"
 
-# Parámetros para el split del dataset en k-folds:
-NUM_FOLDS = 5
-SEMILLA_SPLIT = 1
-
 # Parámetros para el guardado de los datasets:
 GUARDADO_NPY = False # Si es falso, los datasets se guardan como ".csv"
 
 # Parámetros para el preprocesado:
-CL_POSITIVAS = 1
-PORCENTAJE_POS = 0.6
-SEMILLA_PR = 1
+CL_POSITIVAS = 1 # Clases consideradas como positivas
 
 # Función para cargar el dataset original. Se concatenan los de entrenamiento y test para luego hacer k-folds:
 def cargar_isolet(path_train, path_test):

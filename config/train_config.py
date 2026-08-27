@@ -1,13 +1,13 @@
-# Selección de métodos para Negativos Fiables y Aprendizaje:
-MET_NEG_FIABLES = "Rocchio"
-MET_APRENDIZAJE = "Random Forest"
+# Selección de métodos para la obtención de Negativos Fiables y de Aprendizaje:
+MET_NEG_FIABLES = "KNN"
+MET_APRENDIZAJE = "Logistic Regression"
 
-# Parámetros para Negativos Fiables (en Two-Step Methods):
+# Parámetros comunes para la obtención de Negativos Fiables (dentro de los Two-Step Methods):
 METRICA = "euclidean"
 K = 10                  # En KNN, K-Means, K-Medoids y CRNE
-PORCENTAJE_RN = 0.25    # En KNN, K-Means y K-Medoids
-SEMILLA_RN = 1          # En K-Means, K-Medoids y CRNE
+PORCENTAJE_RN = 0.2     # En KNN, K-Means y K-Medoids
+SEMILLA_RN = 42         # En K-Means, K-Medoids y CRNE
 
-# Parámetros para Aprendizaje:
-SEMILLA_L = 1
+# Parámetros comunes para el Aprendizaje:
 BALANCEO_CLASES = True
+SEMILLA_L = 42

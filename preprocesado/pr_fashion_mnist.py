@@ -1,5 +1,6 @@
 import numpy as np
 from config.paths_config import DATASETS, ENGINEERED_DATASETS, SPLIT_DATASETS
+from config.preproc_config import *
 from preprocesado.pr_imagenes import cargar_imgs_idx, cargar_etiqs_idx
 from preprocesado.kfold import separar_dataset_en_k, generar_folds_pu
 
@@ -15,18 +16,11 @@ RUTA_FOLDS = SPLIT_DATASETS / "fashion_mnist"
 # Ruta de los folds tras convertirlos en PU:
 RUTA_FOLDS_PU = ENGINEERED_DATASETS / "fashion_mnist"
 
-
-# Parámetros para el split del dataset en k-folds:
-NUM_FOLDS = 5
-SEMILLA_SPLIT = 1
-
 # Parámetros para el guardado de los datasets:
 GUARDADO_NPY = True # Si es falso, los datasets se guardan como ".csv"
 
-# Parámetros para el preprocesado:
-CL_POSITIVAS = [0, 1, 2]
-PORCENTAJE_POS = 0.6
-SEMILLA_PR = 1
+# Parámetros para la conversión a PU:
+CL_POSITIVAS = [0, 1, 2] # Clases consideradas como positivas
 
 # Función para cargar el dataset original. Se concatenan los de entrenamiento y test para luego hacer k-folds:
 def cargar_fashion_mnist(path_train, path_train_labels, path_test, path_test_labels):

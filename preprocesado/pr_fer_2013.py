@@ -1,5 +1,6 @@
 import numpy as np
 from config.paths_config import DATASETS, ENGINEERED_DATASETS, SPLIT_DATASETS
+from config.preproc_config import *
 from preprocesado.pr_imagenes import cargar_imgs_carpetas
 from preprocesado.kfold import separar_dataset_en_k, generar_folds_pu
 
@@ -13,18 +14,11 @@ RUTA_FOLDS = SPLIT_DATASETS / "fer-2013"
 # Ruta de los folds tras convertirlos en PU:
 RUTA_FOLDS_PU = ENGINEERED_DATASETS / "fer-2013"
 
-
-# Parámetros para el split del dataset en k-folds:
-NUM_FOLDS = 5
-SEMILLA_SPLIT = 1
-
 # Parámetros para el guardado de los datasets:
 GUARDADO_NPY = True # Si es falso, los datasets se guardan como ".csv"
 
-# Parámetros para el preprocesado:
-CL_POSITIVAS = [0, 1, 2]
-PORCENTAJE_POS = 0.6
-SEMILLA_PR = 1
+# Parámetros para la conversión a PU:
+CL_POSITIVAS = [0, 1, 2] # Clases consideradas como positivas
 
 # Parámetros para imágenes:
 ESCALA_GRISES = True
