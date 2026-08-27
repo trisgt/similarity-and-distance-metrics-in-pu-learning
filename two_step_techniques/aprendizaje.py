@@ -3,8 +3,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.neural_network import MLPClassifier
 from xgboost import XGBClassifier
-from tensorflow.keras import Sequential, Input
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
+import tensorflow as tf
+from tensorflow.keras import models, layers
 
 from two_step_techniques.negativos_fiables import preparado_datos
 
@@ -125,16 +125,17 @@ def cnn(X, y, indices_RN, semilla = None, balanceo_clases = False):
 
 # Función auxiliar para crear el modelo de la CNN:
 def crear_modelo_cnn(X):
-    # Creamos el modelo:
-    modelo = Sequential([
-        Input(shape = X.shape[1:]),
-        Conv2D(32, (3, 3), activation = "relu"),
-        MaxPooling2D((2, 2)),
-        Conv2D(64, (3, 3), activation = "relu"),
-        MaxPooling2D((2, 2)),
-        Flatten(),
-        Dense(128, activation = "relu"),
-        Dense(1, activation = "sigmoid")
+    # Creamos el modelo de la CNN:
+    modelo = models.Sequential([
+        layers.Input(shape = X.shape[1:]),
+        layers.Conv2D(32, (3, 3), activation = "relu"),
+        layers.MaxPooling2D((2, 2)),
+        layers.Conv2D(64, (3, 3), activation = "relu"),
+        layers.MaxPooling2D((2, 2)),
+        layers.Conv2D(64, (3, 3), activation = "relu"),
+        layers.Flatten(),
+        layers.Dense(64, activation = "relu"),
+        layers.Dense(1, activation = "sigmoid")
     ])
 
     # Tras crear el modelo, lo configuramos:
