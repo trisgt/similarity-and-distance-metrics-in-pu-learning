@@ -18,14 +18,13 @@ from evaluacion.evaluacion import informacion_evaluacion, evaluacion_dataset
 
 # Función auxiliar para el preparado de datos. Transforma "X" a un array de numpy
 # y la aplana (si fuese necesario) para poder calcular distancias correctamente:
-def preparado_X(X, modelo, aplanar = True):
+def preparado_X(X, modelo):
     # "X" se transforma en array de numpy para una mayor eficiencia:
     X = np.asarray(X, dtype = np.float32)
 
-    # Si se indicase la opción y fuese necesario (en imágenes), la aplanamos:
-    if aplanar:
-        if modelo != "CNN" and X.ndim > 2:
-            X = X.reshape(X.shape[0], -1)
+    # Aplanamos "X" si fuese necesario (en imágenes):
+    if modelo != "CNN" and X.ndim > 2:
+        X = X.reshape(X.shape[0], -1)
 
     return X
 
@@ -85,14 +84,15 @@ def calcular_pesos(y_train):
     return pesos
 
 
-# Función auxiliar para las predicciones del modelo tras el entrenamiento:
+# Función auxiliar para obtener las predicciones del modelo tras el entrenamiento:
 def realizar_prediccion(modelo, X_test, met_aprendizaje):
-    # Con CNN, la salida del modelo es directamente la probabilidad de la clase positiva:
+    # Con CNN, la última capa del modelo (la salida) ya devuelve directamente la probabilidad
+    # de la clase positiva ("y_score"). Las predicciones ("y_pred") se obtienen utilizando esta:
     if met_aprendizaje == "CNN":
         y_score = modelo.predict(X_test).ravel()
         y_pred = (y_score >= 0.5).astype(int)
 
-    # Con el resto de modelos, obtenemos la predicción binaria y la probabilidad de la clase positiva:
+    # Con el resto de modelos, obtenemos "y_pred" e "y_score" por separado:
     else:
         y_pred = modelo.predict(X_test)
         y_score = modelo.predict_proba(X_test)[:, 1]
@@ -140,28 +140,30 @@ def entr_y_eval_no_pu(ruta_folds, guardado_npy, num_folds, cl_positivas, metrica
     for fold_num in range(1, num_folds + 1):
         print(f"\nFold {fold_num}...")
 
-        # Si hay separación entre folds de entrenamiento y test:
+        # Si cada fold tiene su separación entre entrenamiento y test:
         if sep_train_test:
+            # Se cargan los folds correspondientes a ambos conjuntos:
             X_train, y_train, X_test, y_test = cargar_par_fold(ruta_folds, fold_num, guardado_npy)
 
         # En caso contrario:
         else:
-            # Carga del dataset de test (solo uno de los folds, no PU):
+            # Se carga solo uno de los folds, no PU, como conjunto de test:
             X_test, y_test = cargar_fold(ruta_folds, fold_num, guardado_npy)
 
-            # Se juntan el resto de folds para formar el dataset de entrenamiento, no PU:
+            # El resto de folds se juntan para formar el conjunto de entrenamiento (en este caso, no PU):
             indices_folds_entrenamiento = [i for i in range(1, num_folds + 1) if i != fold_num]
             X_train, y_train = juntar_folds_separados(ruta_folds, indices_folds_entrenamiento, guardado_npy)
 
-        # Se convierten las etiquetas multiclase a binarias:
-        y_train = np.isin(y_train, cl_positivas).astype(int)
-        y_test = np.isin(y_test, cl_positivas).astype(int)
-
-        # Se preparan los datos para el modelo de aprendizaje:
+        # Se preparan las características (aplanando si es necesario) para el modelo de aprendizaje:
         X_train = preparado_X(X_train, MET_APRENDIZAJE)
         X_test = preparado_X(X_test, MET_APRENDIZAJE)
 
-        # Se elige el modelo no PU:
+        # Si existiesen múltiples clases, las etiquetas se convierten a binarias.
+        # Con "y_train", este paso ya se habrá realizado previamente en el resto de casos:
+        y_train = np.isin(y_train, cl_positivas).astype(int)
+        y_test = np.isin(y_test, cl_positivas).astype(int)
+
+        # Se elige el modelo de aprendizaje:
         modelo_no_pu = elegir_metodo_aprendizaje(MET_APRENDIZAJE, X_train, SEMILLA_L)
 
         # Si la opción está activada, balanceamos los clases. Si no, entrenamos sin balancear:
@@ -175,11 +177,7 @@ def entr_y_eval_no_pu(ruta_folds, guardado_npy, num_folds, cl_positivas, metrica
         y_pred_no_pu, y_score_no_pu = realizar_prediccion(modelo_no_pu, X_test, MET_APRENDIZAJE)
 
         # Se evalúa el modelo:
-        resultados_no_pu = evaluacion_dataset(
-            y_test,
-            y_pred_no_pu,
-            y_score_no_pu
-        )
+        resultados_no_pu = evaluacion_dataset(y_test, y_pred_no_pu, y_score_no_pu)
 
         # Se añaden los resultados de las métricas a la lista:
         metricas.append(resultados_no_pu)
@@ -212,24 +210,25 @@ def entr_y_eval_pu_sin_ts(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl
     for fold_num in range(1, num_folds + 1):
         print(f"\nFold {fold_num}...")
 
-        # Si hay separación entre folds de entrenamiento y test:
+        # Si cada fold tiene su separación entre entrenamiento y test:
         if sep_train_test:
+            # Se cargan los folds correspondientes a ambos conjuntos:
             X_train_pu, y_train_pu, X_test, y_test = cargar_par_fold(ruta_folds_pu, fold_num, guardado_npy)
 
         # En caso contrario:
         else:
-            # Carga del dataset de test (solo uno de los folds, no PU):
+            # Se carga solo uno de los folds, no PU, como conjunto de test:
             X_test, y_test = cargar_fold(ruta_folds, fold_num, guardado_npy)
 
-            # Se juntan el resto de folds para formar el dataset de entrenamiento, en este caso PU:
+            # El resto de folds se juntan para formar el conjunto de entrenamiento (en este caso, PU):
             indices_folds_entrenamiento = [i for i in range(1, num_folds + 1) if i != fold_num]
             X_train_pu, y_train_pu = juntar_folds_separados(ruta_folds_pu, indices_folds_entrenamiento, guardado_npy)
 
-        # Se preparan los datos para el modelo de aprendizaje:
+        # Se preparan las características (aplanando si es necesario) para el modelo de aprendizaje:
         X_train_pu = preparado_X(X_train_pu, MET_APRENDIZAJE)
         X_test = preparado_X(X_test, MET_APRENDIZAJE)
 
-        # Se elige el modelo PU sin Two-Step methods:
+        # Se elige el modelo de aprendizaje:
         modelo_pu_sin_ts = elegir_metodo_aprendizaje(MET_APRENDIZAJE, X_train_pu, SEMILLA_L)
 
         # Si la opción está activada, balanceamos los clases. Si no, entrenamos sin balancear:
@@ -242,13 +241,9 @@ def entr_y_eval_pu_sin_ts(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl
         # Se realiza la predicción:
         y_pred_pu_sin_ts, y_score_pu_sin_ts = realizar_prediccion(modelo_pu_sin_ts, X_test, MET_APRENDIZAJE)
 
-        # Se evalúa el modelo:
-        y_true_pu = np.isin(y_test, cl_positivas).astype(int)
-        resultados_pu_sin_ts = evaluacion_dataset(
-            y_true_pu,
-            y_pred_pu_sin_ts,
-            y_score_pu_sin_ts
-        )
+        # Se evalúa el modelo. Las etiquetas del conjunto de test se convierten a binarias previamente:
+        y_test = np.isin(y_test, cl_positivas).astype(int)
+        resultados_pu_sin_ts = evaluacion_dataset(y_test, y_pred_pu_sin_ts, y_score_pu_sin_ts)
 
         # Se añaden los resultados de las métricas a la lista:
         metricas.append(resultados_pu_sin_ts)
@@ -281,38 +276,40 @@ def entr_y_eval_pu_con_ts(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl
     for fold_num in range(1, num_folds + 1):
         print(f"\nFold {fold_num}:")
 
-        # Si hay separación entre folds de entrenamiento y test:
+        # Si cada fold tiene su separación entre entrenamiento y test:
         if sep_train_test:
+            # Se cargan los folds correspondientes a ambos conjuntos:
             X_train_pu, y_train_pu, X_test, y_test = cargar_par_fold(ruta_folds_pu, fold_num, guardado_npy)
 
         # En caso contrario:
         else:
-            # Carga del dataset de test (solo uno de los folds, no PU):
+            # Se carga solo uno de los folds, no PU, como conjunto de test:
             X_test, y_test = cargar_fold(ruta_folds, fold_num, guardado_npy)
 
-            # Se juntan el resto de folds para formar el dataset de entrenamiento, PU:
+            # El resto de folds se juntan para formar el conjunto de entrenamiento (en este caso, PU):
             indices_folds_entrenamiento = [i for i in range(1, num_folds + 1) if i != fold_num]
             X_train_pu, y_train_pu = juntar_folds_separados(ruta_folds_pu, indices_folds_entrenamiento, guardado_npy)
 
-        # Se crea una versión plana de X_train_pu, para poder obtener negativos fiables con datos de imágenes:
-        X_train_pu_flat = preparado_X(X_train_pu, None)
+        # Creamos una versión plana de "X_train_pu", utilizada para poder obtener negativos fiables con cualquier
+        # tipo de datos, pero pudiendo más tarde utilizar la versión sin aplanar (en el caso de CNN):
+        X_train_pu_flt = preparado_X(X_train_pu, None)
 
         # Búsqueda de Negativos Fiables:
         match MET_NEG_FIABLES:
             case "Rocchio":
-                indices_RN = rocchio(X_train_pu_flat, y_train_pu, METRICA)
+                indices_RN = rocchio(X_train_pu_flt, y_train_pu, METRICA)
             case "KNN":
-                indices_RN = knn(X_train_pu_flat, y_train_pu, METRICA, K, PORCENTAJE_RN)
+                indices_RN = knn(X_train_pu_flt, y_train_pu, METRICA, K, PORCENTAJE_RN)
             case "KMeans":
-                indices_RN = kmeans(X_train_pu_flat, y_train_pu, METRICA, K, PORCENTAJE_RN, SEMILLA_RN)
+                indices_RN = kmeans(X_train_pu_flt, y_train_pu, METRICA, K, PORCENTAJE_RN, SEMILLA_RN)
             case "KMedoids":
-                indices_RN = kmedoids(X_train_pu_flat, y_train_pu, METRICA, K, PORCENTAJE_RN, SEMILLA_RN)
+                indices_RN = kmedoids(X_train_pu_flt, y_train_pu, METRICA, K, PORCENTAJE_RN, SEMILLA_RN)
             case "CRNE":
-                indices_RN = crne(X_train_pu_flat, y_train_pu, METRICA, K, SEMILLA_RN)
+                indices_RN = crne(X_train_pu_flt, y_train_pu, METRICA, K, SEMILLA_RN)
             case _:
                 raise ValueError(f"Modelo de Negativos Fiables no valido: \"{MET_NEG_FIABLES}\"")
 
-        # Se preparan los datos para el modelo de aprendizaje:
+        # Se preparan las características (aplanando si es necesario) para el modelo de aprendizaje:
         X_train_pu = preparado_X(X_train_pu, MET_APRENDIZAJE)
         X_test = preparado_X(X_test, MET_APRENDIZAJE)
         
@@ -334,13 +331,9 @@ def entr_y_eval_pu_con_ts(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl
         # Se realiza la predicción:
         y_pred, y_score = realizar_prediccion(modelo, X_test, MET_APRENDIZAJE)
 
-        # Se evalúa el modelo:
-        y_true_pu = np.isin(y_test, cl_positivas).astype(int)
-        resultados_pu_con_ts = evaluacion_dataset(
-            y_true_pu,
-            y_pred,
-            y_score
-        )
+        # Se evalúa el modelo. Las etiquetas del conjunto de test se convierten a binarias previamente:
+        y_test = np.isin(y_test, cl_positivas).astype(int)
+        resultados_pu_con_ts = evaluacion_dataset(y_test, y_pred, y_score)
 
         # Se añaden los resultados de las métricas a la lista:
         metricas.append(resultados_pu_con_ts)
@@ -419,7 +412,7 @@ def entrenamiento_y_eval(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl_
 
 
 # Variación de la función principal, donde los folds vienen dados en k pares train-test.
-# Para cada fold, se utiliza un par con un fold de entrenamiento y uno de test específico para este:
+# Para cada uno, se utiliza un par con un fold de entrenamiento y uno de test específico para este:
 def entrenamiento_y_eval_train_test_separate(ruta_folds, ruta_folds_gen_pu, guardado_npy, num_folds, cl_positivas, porcentaje_pos, nombre, ruta_txt):
     # Se crean arrays para más tarde guardar los resultados:
     metricas_no_pu = []
