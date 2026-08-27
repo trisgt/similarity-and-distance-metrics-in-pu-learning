@@ -1,6 +1,5 @@
 from pathlib import Path
 
-# Raíz (como un Path):
 # Raíz, guardada como un Path:
 ROOT = Path(__file__).resolve().parent.parent
 
