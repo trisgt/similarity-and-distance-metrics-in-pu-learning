@@ -22,6 +22,12 @@ def preparado_datos(X, y, aplanar = True):
     return X, y
 
 
+# Función auxiliar para comprobar que "k" no supere al número de muestras disponibles:
+def comprobar_k(k, num_muestras):
+    if k > num_muestras:
+        raise ValueError(f"El valor de k ({k}) no puede ser mayor que el numero de muestras disponibles ({num_muestras})")
+
+
 # Método de Rocchio. En cada método se utiliza un dataset ya convertido a PU ("engineered"):
 def rocchio(X, y, nombre_metrica):
     # Comprobamos que la métrica sea válida:
@@ -78,6 +84,9 @@ def knn(X, y, nombre_metrica, k, porcentaje_rn):
     P = X[y == 1]
     U = X[y == 0]
 
+    # Comprobamos que "k" no sea mayor al número de muestras positivas:
+    comprobar_k(k, len(P))
+
     # Creamos un modelo de KNN:
     if nombre_metrica == "mahalanobis":
         VI = obtener_vi(X)
@@ -124,6 +133,9 @@ def kmeans(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
     # Separamos las muestras Positivas y las No Etiquetadas:
     P = X[y == 1]
     U = X[y == 0]
+
+    # Comprobamos que "k" no sea mayor al número de muestras no etiquetadas:
+    comprobar_k(k, len(U))
 
     # Creamos un modelo de K-Means (con distancia Euclídea). Con "fit_predict" se ejecuta
     # el algoritmo de K-Means sobre los No Etiquetados, obteniendo k clusters que ya han convergido:
@@ -191,6 +203,9 @@ def kmedoids(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
     P = X[y == 1]
     U = X[y == 0]
 
+    # Comprobamos que "k" no sea mayor al número de muestras no etiquetadas:
+    comprobar_k(k, len(U))
+
     # Creamos un modelo de K-Medoids. Con "fit_predict" se ejecuta el algoritmo de K-Medoids sobre
     # los No Etiquetados, obteniendo k clusters que ya han convergido. A diferencia de K-Means,
     # K-Medoids sí que puede utilizar la métrica especificada durante el proceso de clustering:
@@ -256,6 +271,9 @@ def crne(X, y, nombre_metrica, k, semilla = 1):
 
     # Preparamos los datos:
     X, y = preparado_datos(X, y)
+
+    # Comprobamos que "k" no sea mayor al número de muestras:
+    comprobar_k(k, len(X))
 
     # Creamos un modelo de K-Medoids. Con "fit_predict" se ejecuta
     # el algoritmo de K-Medoids sobre todo el conjunto ("X"), obteniendo k clusters:
