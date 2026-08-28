@@ -5,7 +5,7 @@ MET_APRENDIZAJE = "Random Forest"
 # Parámetros comunes para la obtención de Negativos Fiables (dentro de los Two-Step Methods):
 METRICA = "euclidean"
 K = 10                  # En KNN, K-Means, K-Medoids y CRNE
-PORCENTAJE_RN = 0.5     # En KNN, K-Means y K-Medoids
+PORCENTAJE_RN = 0.7     # En KNN, K-Means y K-Medoids
 SEMILLA_RN = 42         # En K-Means, K-Medoids y CRNE
 
 # Parámetros comunes para el Aprendizaje:

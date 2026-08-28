@@ -1,3 +1,4 @@
+from datetime import datetime
 from sklearn.metrics import f1_score, precision_recall_curve, auc
 
 # Función para dar información al usuario sobre la evaluación actual:
@@ -12,9 +13,12 @@ def informacion_evaluacion(
         guardar = False,
         path_guardado = "resultados.txt"):
 
+    # Obtenemos la fecha y hora actuales:
+    fecha_y_hora = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
     # Información para el usuario:
     informacion = (
-        f"Evaluacion: {nombre}\n"
+        f"Evaluacion: {nombre} ({fecha_y_hora})\n"
         f"\tCl. positivas (PU): {cl_positivas}\n"
         f"\tPorc. positivos (PU): {porc_positivos}\n"
         f"\tMet. negativos fiables (TS): {met_neg_fiables}"
@@ -23,7 +27,6 @@ def informacion_evaluacion(
     # "k" solo se utiliza si el método de RN no es Rocchio:
     if met_neg_fiables != "Rocchio":
         informacion += f"\t(K = {k})"
-
 
     # El porcentaje de RN solo se utiliza si el método no es Rocchio o CRNE:
     if met_neg_fiables not in ("Rocchio", "CRNE"):
