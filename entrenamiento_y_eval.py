@@ -105,23 +105,21 @@ def escribir_resultados(metricas, ruta_guardado, nombre):
     # Las métricas se convierten a un DataFrame de pandas:
     metricas_dataframe = pd.DataFrame(metricas)
 
-    # Se abre el archivo donde se guardarán los resultados:
-    f = open(ruta_guardado, "a")
-
     # Se calculan la media y la desviación típica de las métricas:
     metricas_media = metricas_dataframe.mean()
     metricas_dt = metricas_dataframe.std()
 
-    # Se escriben en el archivo los resultados:
-    f.write(f"{nombre}:")
-    f.write("\nMEDIA:\n")
-    f.write(metricas_media.to_string())
-    f.write("\nDESVIACION TIPICA:\n")
-    f.write(metricas_dt.to_string())
-    f.write("\n\n")
-
-    # El archivo se cierra:
-    f.close()
+    # Se escriben los resultados en el archivo de guardado:
+    with open(ruta_guardado, "a") as f:
+        f.write(f"{nombre}:\n")
+        f.write(
+            f"MEDIA: F1-Score = {metricas_media['F1-Score']:.3f}, "
+            f"PR-AUC = {metricas_media['PR-AUC']:.3f}\n"
+        )
+        f.write(
+            f"DESVIACION TIPICA: F1-Score = {metricas_dt['F1-Score']:.3f}, "
+            f"PR-AUC = {metricas_dt['PR-AUC']:.3f}\n\n"
+        )
 
 
 # Función de Entrenamiento y Evaluación no PU:
@@ -363,8 +361,9 @@ def entrenamiento_y_eval(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl_
         nombre,
         cl_positivas,
         porcentaje_pos,
-        METRICA,
         MET_NEG_FIABLES,
+        K, PORCENTAJE_RN,
+        METRICA,
         MET_APRENDIZAJE,
         True,
         ruta_txt
@@ -424,8 +423,9 @@ def entrenamiento_y_eval_train_test_separate(ruta_folds, ruta_folds_gen_pu, guar
         nombre,
         cl_positivas,
         porcentaje_pos,
-        METRICA,
         MET_NEG_FIABLES,
+        K, PORCENTAJE_RN,
+        METRICA,
         MET_APRENDIZAJE,
         True,
         ruta_txt
