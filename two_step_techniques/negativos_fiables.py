@@ -26,6 +26,7 @@ def preparado_datos(X, y, aplanar = True):
 def rocchio(X, y, nombre_metrica):
     # Comprobamos que la métrica sea válida:
     nombre_metrica = comprobar_nombre_metrica(nombre_metrica)
+    metrica = obtener_metrica(nombre_metrica)
 
     # Preparamos los datos:
     X, y = preparado_datos(X, y)
@@ -45,11 +46,11 @@ def rocchio(X, y, nombre_metrica):
     # Calculamos las distancias de todos los No Etiquetados a ambos prototpios:
     if nombre_metrica == "mahalanobis": # Para Mahalanobis se necesita utilizar VI
         VI = obtener_vi(X)
-        dist_prot_p = pairwise_distances(U, prototipo_p, nombre_metrica, VI = VI).ravel()
-        dist_prot_u = pairwise_distances(U, prototipo_u, nombre_metrica, VI = VI).ravel()
+        dist_prot_p = pairwise_distances(U, prototipo_p, metrica, VI = VI).ravel()
+        dist_prot_u = pairwise_distances(U, prototipo_u, metrica, VI = VI).ravel()
     else:
-        dist_prot_p = pairwise_distances(U, prototipo_p, nombre_metrica).ravel()
-        dist_prot_u = pairwise_distances(U, prototipo_u, nombre_metrica).ravel()
+        dist_prot_p = pairwise_distances(U, prototipo_p, metrica).ravel()
+        dist_prot_u = pairwise_distances(U, prototipo_u, metrica).ravel()
 
     # Obtenemos los índices de los negativos fiables. Estos se corresponderán con
     # las muestras que estén mas cerca del prototipo de No Etiquetados que del de Positivos:
@@ -67,6 +68,7 @@ def rocchio(X, y, nombre_metrica):
 def knn(X, y, nombre_metrica, k, porcentaje_rn):
     # Comprobamos que la métrica sea válida:
     nombre_metrica = comprobar_nombre_metrica(nombre_metrica)
+    metrica = obtener_metrica(nombre_metrica)
 
     # Preparamos los datos:
     X, y = preparado_datos(X, y)
@@ -83,12 +85,12 @@ def knn(X, y, nombre_metrica, k, porcentaje_rn):
         VI = obtener_vi(X)
         modelo_knn = NearestNeighbors(
             n_neighbors = k,
-            metric = nombre_metrica,
+            metric = metrica,
             metric_params = {"VI": VI})
     else:
         modelo_knn = NearestNeighbors(
             n_neighbors = k,
-            metric = nombre_metrica)
+            metric = metrica)
 
     # Con "fit", se crea un mapa de las muestras positivas, que el modelo podrá utilizar:
     modelo_knn.fit(P)
@@ -114,6 +116,7 @@ def knn(X, y, nombre_metrica, k, porcentaje_rn):
 def kmeans(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
     # Comprobamos que la métrica sea válida:
     nombre_metrica = comprobar_nombre_metrica(nombre_metrica)
+    metrica = obtener_metrica(nombre_metrica)
 
     # Preparamos los datos:
     X, y = preparado_datos(X, y)
@@ -138,9 +141,9 @@ def kmeans(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
     VI = None
     if nombre_metrica == "mahalanobis":
         VI = obtener_vi(X)
-        dist_centroides = pairwise_distances(centroides_u, prototipo_p, nombre_metrica, VI = VI).ravel()
+        dist_centroides = pairwise_distances(centroides_u, prototipo_p, metrica, VI = VI).ravel()
     else:
-        dist_centroides = pairwise_distances(centroides_u, prototipo_p, nombre_metrica).ravel()
+        dist_centroides = pairwise_distances(centroides_u, prototipo_p, metrica).ravel()
 
     # Ordenamos los centroides por distancia, de más lejanos a más cercanos al positivo:
     orden_centroides = np.argsort(dist_centroides)[::-1]
@@ -157,9 +160,9 @@ def kmeans(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
 
     # Calculamos la distancia de cada candidato al prototipo positivo:
     if nombre_metrica == "mahalanobis":
-        dist_candidatos = pairwise_distances(candidatos, prototipo_p, nombre_metrica, VI = VI).ravel()
+        dist_candidatos = pairwise_distances(candidatos, prototipo_p, metrica, VI = VI).ravel()
     else:
-        dist_candidatos = pairwise_distances(candidatos, prototipo_p, nombre_metrica).ravel()
+        dist_candidatos = pairwise_distances(candidatos, prototipo_p, metrica).ravel()
 
     # Ordenamos los candidatos por distancia, de más lejanos a más cercanos al positivo:
     orden_candidatos = np.argsort(dist_candidatos)[::-1]
@@ -180,6 +183,7 @@ def kmeans(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
 def kmedoids(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
     # Comprobamos que la métrica sea válida:
     nombre_metrica = comprobar_nombre_metrica(nombre_metrica)
+    metrica = obtener_metrica(nombre_metrica)
 
     # Preparamos los datos:
     X, y = preparado_datos(X, y)
@@ -197,11 +201,11 @@ def kmedoids(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
     VI = None
     if nombre_metrica == "mahalanobis":
         VI = obtener_vi(X)
-        matriz_distancias = pairwise_distances(U, metric = nombre_metrica, VI = VI)
+        matriz_distancias = pairwise_distances(U, metric = metrica, VI = VI)
         modelo_kmedoids = KMedoids(n_clusters = k, metric = "precomputed", random_state = semilla)
         clusters_u = modelo_kmedoids.fit_predict(matriz_distancias)
     else:
-        modelo_kmedoids = KMedoids(n_clusters = k, metric = nombre_metrica, random_state = semilla)
+        modelo_kmedoids = KMedoids(n_clusters = k, metric = metrica, random_state = semilla)
         clusters_u = modelo_kmedoids.fit_predict(U)
 
     # Obtenemos los centroides (medoides) de cada cluster de los No Etiquetados, y el centroide (prototipo) positivo.
@@ -211,9 +215,9 @@ def kmedoids(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
 
     # Calculamos la distancia de cada medoide al prototipo positivo:
     if nombre_metrica == "mahalanobis":
-        dist_medoides = pairwise_distances(medoides_u, prototipo_p, nombre_metrica, VI = VI).ravel()
+        dist_medoides = pairwise_distances(medoides_u, prototipo_p, metrica, VI = VI).ravel()
     else:
-        dist_medoides = pairwise_distances(medoides_u, prototipo_p, nombre_metrica).ravel()
+        dist_medoides = pairwise_distances(medoides_u, prototipo_p, metrica).ravel()
 
     # Ordenamos los medoides por distancia, de más lejanos a más cercanos al positivo:
     orden_medoides = np.argsort(dist_medoides)[::-1]
@@ -230,9 +234,9 @@ def kmedoids(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
 
     # Calculamos la distancia de cada candidato al prototipo positivo:
     if nombre_metrica == "mahalanobis":
-        dist_candidatos = pairwise_distances(candidatos, prototipo_p, nombre_metrica, VI = VI).ravel()
+        dist_candidatos = pairwise_distances(candidatos, prototipo_p, metrica, VI = VI).ravel()
     else:
-        dist_candidatos = pairwise_distances(candidatos, prototipo_p, nombre_metrica).ravel()
+        dist_candidatos = pairwise_distances(candidatos, prototipo_p, metrica).ravel()
 
     # Ordenamos los candidatos por distancia, de más lejanos a más cercanos al positivo:
     orden_candidatos = np.argsort(dist_candidatos)[::-1]
@@ -253,6 +257,7 @@ def kmedoids(X, y, nombre_metrica, k, porcentaje_rn, semilla = 1):
 def crne(X, y, nombre_metrica, k, semilla = 1):
     # Comprobamos que la métrica sea válida:
     nombre_metrica = comprobar_nombre_metrica(nombre_metrica)
+    metrica = obtener_metrica(nombre_metrica)
 
     # Preparamos los datos:
     X, y = preparado_datos(X, y)
@@ -262,11 +267,11 @@ def crne(X, y, nombre_metrica, k, semilla = 1):
     VI = None
     if nombre_metrica == "mahalanobis":
         VI = obtener_vi(X)
-        matriz_distancias = pairwise_distances(X, metric = nombre_metrica, VI = VI)
+        matriz_distancias = pairwise_distances(X, metric = metrica, VI = VI)
         modelo_kmedoids = KMedoids(n_clusters = k, metric = "precomputed", random_state = semilla)
         clusters = modelo_kmedoids.fit_predict(matriz_distancias)
     else:
-        modelo_kmedoids = KMedoids(n_clusters = k, metric = nombre_metrica, random_state = semilla)
+        modelo_kmedoids = KMedoids(n_clusters = k, metric = metrica, random_state = semilla)
         clusters = modelo_kmedoids.fit_predict(X)
 
     # Identificamos los positivos dentro de "y":
