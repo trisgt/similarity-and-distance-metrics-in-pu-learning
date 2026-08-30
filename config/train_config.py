@@ -1,6 +1,6 @@
 # Selección de métodos para la obtención de Negativos Fiables y de Aprendizaje:
 MET_NEG_FIABLES = "Rocchio"
-MET_APRENDIZAJE = "Random Forest"
+MET_APRENDIZAJE = "MLP"
 
 # Parámetros comunes para la obtención de Negativos Fiables (dentro de los Two-Step Methods):
 METRICA = "euclidean"

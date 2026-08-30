@@ -101,17 +101,30 @@ def realizar_prediccion(modelo, X_test, met_aprendizaje):
 
 
 # Función auxiliar para escribir en el archivo de resultados:
-def escribir_resultados(metricas, ruta_guardado, nombre):
-    # Las métricas se convierten a un DataFrame de pandas:
-    metricas_dataframe = pd.DataFrame(metricas)
-
-    # Se calculan la media y la desviación típica de las métricas:
-    metricas_media = metricas_dataframe.mean()
-    metricas_dt = metricas_dataframe.std()
-
-    # Se escriben los resultados en el archivo de guardado:
+def escribir_resultados(metricas, num_folds, ruta_guardado, nombre):
+    # Se abre el archivo de guardado:
     with open(ruta_guardado, "a") as f:
         f.write(f"{nombre}:\n")
+
+        # En el caso extremo de que no se hayan obtenido resultados (por ejemplo, por no haber
+        # encontrado ningún Negativo Fiable en el escenario de aprendizaje PU con Two-Step methods):
+        if not metricas:
+            f.write("No evaluable: no se han obtenido resultados.\n\n")
+            return
+
+        # En el caso de que alguno de los folds no haya obtenido resultados (por ejemplo, si ese fold
+        # en concreto no hubiese encontrado ningún Negativo Fiable en el mismo escenario):
+        if len(metricas) < num_folds:
+            f.write(f"(Solo se han podido evaluar {len(metricas)} de los {num_folds} folds disponibles)\n")
+
+        # Las métricas se convierten a un DataFrame de pandas:
+        metricas_dataframe = pd.DataFrame(metricas)
+
+        # Se calculan la media y la desviación típica de las métricas:
+        metricas_media = metricas_dataframe.mean()
+        metricas_dt = metricas_dataframe.std()
+
+        # Se escriben los resultados:
         f.write(
             f"MEDIA: F1-Score = {metricas_media['F1-Score']:.3f}, "
             f"PR-AUC = {metricas_media['PR-AUC']:.3f}\n"
@@ -307,6 +320,11 @@ def entr_y_eval_pu_con_ts(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl
             case _:
                 raise ValueError(f"Modelo de Negativos Fiables no valido: \"{MET_NEG_FIABLES}\"")
 
+        # En el caso extremo de que no se hayan encontrado negativos fiables (posible en CRNE con valores de "k" bajos):
+        if len(indices_RN) == 0:
+            print("WARNING: no reliable negative examples have been identified. Fold has been skipped.")
+            continue
+
         # Se preparan las características (aplanando si es necesario) para el modelo de aprendizaje:
         X_train_pu = preparado_X(X_train_pu, MET_APRENDIZAJE)
         X_test = preparado_X(X_test, MET_APRENDIZAJE)
@@ -402,9 +420,9 @@ def entrenamiento_y_eval(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl_
     )
 
     # Se escriben las estadísticas finales en el archivo de guardado:
-    escribir_resultados(metricas_no_pu, ruta_txt, "Resultados no PU")
-    escribir_resultados(metricas_pu_sin_ts, ruta_txt, "Resultados PU sin Two-Step methods")
-    escribir_resultados(metricas_pu_con_ts, ruta_txt, "Resultados PU con Two-Step methods")
+    escribir_resultados(metricas_no_pu, num_folds, ruta_txt, "Resultados no PU")
+    escribir_resultados(metricas_pu_sin_ts, num_folds, ruta_txt, "Resultados PU sin Two-Step methods")
+    escribir_resultados(metricas_pu_con_ts, num_folds, ruta_txt, "Resultados PU con Two-Step methods")
 
     print("Evaluacion finalizada correctamente.")
     print(f"Informe guardado en: {ruta_txt}")
@@ -467,9 +485,9 @@ def entrenamiento_y_eval_train_test_separate(ruta_folds, ruta_folds_gen_pu, guar
     )
 
     # Se escriben las estadísticas finales en el archivo de guardado:
-    escribir_resultados(metricas_no_pu, ruta_txt, "Resultados no PU")
-    escribir_resultados(metricas_pu_sin_ts, ruta_txt, "Resultados PU sin Two-Step methods")
-    escribir_resultados(metricas_pu_con_ts, ruta_txt, "Resultados PU con Two-Step methods")
+    escribir_resultados(metricas_no_pu, num_folds, ruta_txt, "Resultados no PU")
+    escribir_resultados(metricas_pu_sin_ts, num_folds, ruta_txt, "Resultados PU sin Two-Step methods")
+    escribir_resultados(metricas_pu_con_ts, num_folds, ruta_txt, "Resultados PU con Two-Step methods")
 
     print("Evaluacion finalizada correctamente.")
     print(f"Informe guardado en: {ruta_txt}")
