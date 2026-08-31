@@ -9,7 +9,7 @@ from scipy.spatial.distance import(
     braycurtis      # Distancia de Bray-Curtis
 )
 
-'''
+
 # Función auxiliar para calcular la distancia de Jaccard generalizada para valores reales:
 def real_val_jaccard(x, y):
     # Calculamos la magnitud de cada componente:
@@ -19,19 +19,6 @@ def real_val_jaccard(x, y):
     # Calculamos el numerador y denominador del índice de Jaccard:
     num = np.sum(np.sign(x * y) * np.minimum(abs_x, abs_y))
     den = np.sum(np.maximum(abs_x, abs_y))
-
-    # En caso de que el denominador sea nulo, para evitar división entre 0:
-    if den == 0:
-        return 0.0
-
-    return 1.0 - (num / den)
-'''
-
-# Función auxiliar para calcular la distancia de Jaccard generalizada para valores continuos:
-def gen_jaccard(x, y):
-    # Calculamos el numerador y denominador del índice de Jaccard:
-    num = np.sum(np.minimum(x, y))
-    den = np.sum(np.maximum(x, y))
 
     # En caso de que el denominador sea nulo, para evitar división entre 0:
     if den == 0:
@@ -47,7 +34,7 @@ METRICAS_DISTANCIA = {
     "euclidean": euclidean,
     "cityblock": cityblock,
     "manhattan": cityblock, # "manhattan" se considera un alias de "cityblock"
-    "jaccard": gen_jaccard, # Con Jaccard se utiliza la distancia generalizada
+    "jaccard": real_val_jaccard, # Con Jaccard se utiliza la distancia generalizada
     "cosine": cosine,
     "mahalanobis": mahalanobis,
     "canberra": canberra,
