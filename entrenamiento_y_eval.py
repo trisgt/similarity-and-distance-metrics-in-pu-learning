@@ -368,11 +368,7 @@ def entr_y_eval_pu_con_ts(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl
 
 # Función principal, utilizada para el resto de datasets. Compara entrenamiento
 # y evaluación no PU, PU sin Two-Step methods y PU con Two-Step methods:
-def entrenamiento_y_eval(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl_positivas, porcentaje_pos, nombre, ruta_txt):
-    # Se crean arrays para más tarde guardar los resultados:
-    metricas_no_pu = []
-    metricas_pu_sin_ts = []
-    metricas_pu_con_ts = []
+def entrenamiento_y_eval(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl_positivas, porcentaje_pos, nombre, ruta_txt, solo_pu_con_ts = False):
 
     # Información inicial:
     informacion_evaluacion(
@@ -387,34 +383,40 @@ def entrenamiento_y_eval(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl_
         ruta_txt
     )
 
-    # Entrenamiento y evaluación no PU:
-    metricas_no_pu = entr_y_eval_no_pu(
-        ruta_folds,
-        guardado_npy,
-        num_folds,
-        cl_positivas,
-        metricas_no_pu,
-        nombre
-    )
+    # En caso de que se quieran entrenar y evaluar los tres escenarios:
+    if not solo_pu_con_ts:
 
-    # Se escriben las estadísticas finales en el archivo de guardado:
-    escribir_resultados(metricas_no_pu, num_folds, ruta_txt, "Resultados no PU")
+        # Entrenamiento y evaluación no PU. En cada escenario se crea un array para guardar los resultados:
+        metricas_no_pu = []
+        metricas_no_pu = entr_y_eval_no_pu(
+            ruta_folds,
+            guardado_npy,
+            num_folds,
+            cl_positivas,
+            metricas_no_pu,
+            nombre
+        )
 
-    # Entrenamiento y evaluación PU sin Two-Step Methods:
-    metricas_pu_sin_ts = entr_y_eval_pu_sin_ts(
-        ruta_folds,
-        ruta_folds_pu,
-        guardado_npy,
-        num_folds,
-        cl_positivas,
-        metricas_pu_sin_ts,
-        nombre
-    )
+        # Se escriben las estadísticas finales en el archivo de guardado:
+        escribir_resultados(metricas_no_pu, num_folds, ruta_txt, "Resultados no PU")
 
-    # Se escriben las estadísticas finales en el archivo de guardado:
-    escribir_resultados(metricas_pu_sin_ts, num_folds, ruta_txt, "Resultados PU sin Two-Step methods")
+        # Entrenamiento y evaluación PU sin Two-Step Methods:
+        metricas_pu_sin_ts = []
+        metricas_pu_sin_ts = entr_y_eval_pu_sin_ts(
+            ruta_folds,
+            ruta_folds_pu,
+            guardado_npy,
+            num_folds,
+            cl_positivas,
+            metricas_pu_sin_ts,
+            nombre
+        )
+
+        # Se escriben las estadísticas finales en el archivo de guardado:
+        escribir_resultados(metricas_pu_sin_ts, num_folds, ruta_txt, "Resultados PU sin Two-Step methods")
 
     # Entrenamiento y evaluación PU con Two-Step Methods:
+    metricas_pu_con_ts = []
     metricas_pu_con_ts = entr_y_eval_pu_con_ts(
         ruta_folds,
         ruta_folds_pu,
@@ -434,11 +436,7 @@ def entrenamiento_y_eval(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl_
 
 # Variación de la función principal, donde los folds vienen dados en k pares train-test.
 # Para cada uno, se utiliza un par con un fold de entrenamiento y uno de test específico para este:
-def entrenamiento_y_eval_train_test_separate(ruta_folds, ruta_folds_gen_pu, guardado_npy, num_folds, cl_positivas, porcentaje_pos, nombre, ruta_txt):
-    # Se crean arrays para más tarde guardar los resultados:
-    metricas_no_pu = []
-    metricas_pu_sin_ts = []
-    metricas_pu_con_ts = []
+def entrenamiento_y_eval_train_test_separate(ruta_folds, ruta_folds_gen_pu, guardado_npy, num_folds, cl_positivas, porcentaje_pos, nombre, ruta_txt, solo_pu_con_ts = False):
 
     # Información inicial:
     informacion_evaluacion(
@@ -453,36 +451,42 @@ def entrenamiento_y_eval_train_test_separate(ruta_folds, ruta_folds_gen_pu, guar
         ruta_txt
     )
 
-    # Entrenamiento y evaluación no PU:
-    metricas_no_pu = entr_y_eval_no_pu(
-        ruta_folds,
-        guardado_npy,
-        num_folds,
-        cl_positivas,
-        metricas_no_pu,
-        nombre,
-        True
-    )
+    # En caso de que se quieran entrenar y evaluar los tres escenarios:
+    if not solo_pu_con_ts:
 
-    # Se escriben las estadísticas finales en el archivo de guardado:
-    escribir_resultados(metricas_no_pu, num_folds, ruta_txt, "Resultados no PU")
+        # Entrenamiento y evaluación no PU. En cada escenario se crea un array para guardar los resultados:
+        metricas_no_pu = []
+        metricas_no_pu = entr_y_eval_no_pu(
+            ruta_folds,
+            guardado_npy,
+            num_folds,
+            cl_positivas,
+            metricas_no_pu,
+            nombre,
+            True
+        )
 
-    # Entrenamiento y evaluación PU sin Two-Step Methods:
-    metricas_pu_sin_ts = entr_y_eval_pu_sin_ts(
-        ruta_folds,
-        ruta_folds_gen_pu,
-        guardado_npy,
-        num_folds,
-        cl_positivas,
-        metricas_pu_sin_ts,
-        nombre,
-        True
-    )
+        # Se escriben las estadísticas finales en el archivo de guardado:
+        escribir_resultados(metricas_no_pu, num_folds, ruta_txt, "Resultados no PU")
 
-    # Se escriben las estadísticas finales en el archivo de guardado:
-    escribir_resultados(metricas_pu_sin_ts, num_folds, ruta_txt, "Resultados PU sin Two-Step methods")
+        # Entrenamiento y evaluación PU sin Two-Step Methods:
+        metricas_pu_sin_ts = []
+        metricas_pu_sin_ts = entr_y_eval_pu_sin_ts(
+            ruta_folds,
+            ruta_folds_gen_pu,
+            guardado_npy,
+            num_folds,
+            cl_positivas,
+            metricas_pu_sin_ts,
+            nombre,
+            True
+        )
+
+        # Se escriben las estadísticas finales en el archivo de guardado:
+        escribir_resultados(metricas_pu_sin_ts, num_folds, ruta_txt, "Resultados PU sin Two-Step methods")
 
     # Entrenamiento y evaluación PU con Two-Step Methods:
+    metricas_pu_con_ts = []
     metricas_pu_con_ts = entr_y_eval_pu_con_ts(
         ruta_folds,
         ruta_folds_gen_pu,

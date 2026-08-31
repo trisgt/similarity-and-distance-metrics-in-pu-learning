@@ -1,4 +1,5 @@
 from config.paths_config import GENUINE_PU_DATASETS, SPLIT_DATASETS, RESULTADOS
+from config.train_config import SOLO_PU_CON_TS
 from preprocesado.pr_breast_cancer import NUM_FOLDS, GUARDADO_NPY, CL_POSITIVAS, PORCENTAJE_POS
 from entrenamiento_y_eval import entrenamiento_y_eval_train_test_separate
 
@@ -23,5 +24,6 @@ if __name__ == "__main__":
         CL_POSITIVAS,
         PORCENTAJE_POS,
         NOMBRE,
-        RUTA_TXT        
+        RUTA_TXT,
+        SOLO_PU_CON_TS
     )
