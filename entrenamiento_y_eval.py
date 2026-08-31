@@ -397,6 +397,9 @@ def entrenamiento_y_eval(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl_
         nombre
     )
 
+    # Se escriben las estadísticas finales en el archivo de guardado:
+    escribir_resultados(metricas_no_pu, num_folds, ruta_txt, "Resultados no PU")
+
     # Entrenamiento y evaluación PU sin Two-Step Methods:
     metricas_pu_sin_ts = entr_y_eval_pu_sin_ts(
         ruta_folds,
@@ -407,6 +410,9 @@ def entrenamiento_y_eval(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl_
         metricas_pu_sin_ts,
         nombre
     )
+
+    # Se escriben las estadísticas finales en el archivo de guardado:
+    escribir_resultados(metricas_pu_sin_ts, num_folds, ruta_txt, "Resultados PU sin Two-Step methods")
 
     # Entrenamiento y evaluación PU con Two-Step Methods:
     metricas_pu_con_ts = entr_y_eval_pu_con_ts(
@@ -420,8 +426,6 @@ def entrenamiento_y_eval(ruta_folds, ruta_folds_pu, guardado_npy, num_folds, cl_
     )
 
     # Se escriben las estadísticas finales en el archivo de guardado:
-    escribir_resultados(metricas_no_pu, num_folds, ruta_txt, "Resultados no PU")
-    escribir_resultados(metricas_pu_sin_ts, num_folds, ruta_txt, "Resultados PU sin Two-Step methods")
     escribir_resultados(metricas_pu_con_ts, num_folds, ruta_txt, "Resultados PU con Two-Step methods")
 
     print("Evaluacion finalizada correctamente.")
@@ -460,6 +464,9 @@ def entrenamiento_y_eval_train_test_separate(ruta_folds, ruta_folds_gen_pu, guar
         True
     )
 
+    # Se escriben las estadísticas finales en el archivo de guardado:
+    escribir_resultados(metricas_no_pu, num_folds, ruta_txt, "Resultados no PU")
+
     # Entrenamiento y evaluación PU sin Two-Step Methods:
     metricas_pu_sin_ts = entr_y_eval_pu_sin_ts(
         ruta_folds,
@@ -471,6 +478,9 @@ def entrenamiento_y_eval_train_test_separate(ruta_folds, ruta_folds_gen_pu, guar
         nombre,
         True
     )
+
+    # Se escriben las estadísticas finales en el archivo de guardado:
+    escribir_resultados(metricas_pu_sin_ts, num_folds, ruta_txt, "Resultados PU sin Two-Step methods")
 
     # Entrenamiento y evaluación PU con Two-Step Methods:
     metricas_pu_con_ts = entr_y_eval_pu_con_ts(
@@ -485,8 +495,6 @@ def entrenamiento_y_eval_train_test_separate(ruta_folds, ruta_folds_gen_pu, guar
     )
 
     # Se escriben las estadísticas finales en el archivo de guardado:
-    escribir_resultados(metricas_no_pu, num_folds, ruta_txt, "Resultados no PU")
-    escribir_resultados(metricas_pu_sin_ts, num_folds, ruta_txt, "Resultados PU sin Two-Step methods")
     escribir_resultados(metricas_pu_con_ts, num_folds, ruta_txt, "Resultados PU con Two-Step methods")
 
     print("Evaluacion finalizada correctamente.")
