@@ -111,7 +111,7 @@ def mlp(X, y, indices_RN, semilla = None, balanceo_clases = False):
 def cnn(X, y, indices_RN, semilla = None, balanceo_clases = False):
     # Si se ha dado una semilla, la utilizamos con TensorFlow:
     if semilla is not None:
-        tf.random_set_seed(semilla)
+        tf.random.set_seed(semilla)
 
     # Preparamos los datos. En este caso, no se aplanan:
     X, y = preparado_datos(X, y, aplanar = False)
